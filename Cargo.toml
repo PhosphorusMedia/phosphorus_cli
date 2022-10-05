@@ -16,3 +16,5 @@ directories = "4.0.1"
 termprogress = { version = "0.3.4", features = ["size"] }
 inquire = "0.4.0"
 regex = "1.6.0"
+tuirealm = "^1.1.0"
+tui-realm-stdlib = "^1.1.0"

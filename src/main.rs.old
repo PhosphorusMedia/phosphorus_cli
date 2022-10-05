@@ -1,0 +1,420 @@
+use inquire::*;
+use plugin_manager::{query::*, PluginManager};
+use std::{fs, ops::Range};
+use termprogress::{Display, ProgressBar};
+use youtube::YouTube;
+
+use crate::{
+    cli_io::{Action, Print},
+    downloader::download_and_play,
+    player::Player,
+};
+
+mod cli_io;
+mod config;
+mod downloader;
+mod player;
+mod ui;
+
+#[tokio::main]
+async fn main() {
+    let paths = match config::config_env() {
+        Ok(paths) => paths,
+        Err(msg) => {
+            eprintln!("Preliminary checks failed");
+            eprintln!("The error was: {}", msg);
+            std::process::exit(1);
+        }
+    };
+
+    println!("Welcome in Phosphorus!");
+    println!("A place for free music!");
+
+    let mut manager = PluginManager::new();
+    if let Err(msg) = manager.register_plugin(Box::new(YouTube {}), "YouTube") {
+        eprintln!(
+            "An error occured while trying to register a plugin:\n{}",
+            msg
+        );
+        std::process::exit(1);
+    }
+    if let Err(msg) = manager.set_default("YouTube") {
+        eprintln!(
+            "An error occured while trying to set the default plugin\n{}",
+            msg
+        );
+        std::process::exit(1);
+    }
+
+    let player = match Player::try_new() {
+        Ok(player) => player,
+        Err(msg) => {
+            eprintln!("Error while initializing the player");
+            eprintln!("The error was: {}", msg);
+            std::process::exit(1);
+        }
+    };
+
+    loop {
+        println!();
+        let ans = Select::new("What do you want to do?", Action::items()).prompt_skippable();
+        let ans = match ans {
+            Ok(ans) => ans,
+            Err(_) => {
+                eprintln!("An error occured, please try again");
+                continue;
+            }
+        };
+        if let None = ans {
+            continue;
+        }
+        match ans.unwrap() {
+            Action::Search => {
+                let result = match search(&manager).await {
+                    Ok(result) => result,
+                    Err(msg) => {
+                        if !msg.is::<InquireError>() {
+                            eprintln!("An error occured: {}", msg);
+                        }
+                        continue;
+                    }
+                };
+                let result = match result {
+                    Some(result) => result,
+                    None => {
+                        println!("An empty query can't produce any result");
+                        continue;
+                    }
+                };
+
+                let printer = result.prepare();
+                printer.print();
+                let range = printer.rows();
+
+                let ans = Confirm::new("Do you want to download a song?").prompt_skippable();
+                let ans = loop {
+                    let ans = match ans {
+                        Ok(ans) => ans,
+                        Err(_) => {
+                            eprintln!("An error occured, please try again");
+                            continue;
+                        }
+                    };
+                    break ans;
+                };
+                if ans == None || !ans.unwrap() {
+                    continue;
+                }
+                let id = match ask_for_id("Choose a song to download", range) {
+                    Ok(id) => id,
+                    Err(_) => {
+                        eprintln!("An error occured");
+                        continue;
+                    }
+                };
+                if let None = id {
+                    continue;
+                }
+                let item: &QueryResultData = result.data().get(id.unwrap()).unwrap();
+                let file_name = paths.download().join(format!(
+                    "{} -- {}",
+                    item.track_name(),
+                    item.artist_name()
+                ));
+                let file_name = downlaod(
+                    &manager,
+                    item.track_url().as_str(),
+                    file_name.to_str().unwrap(),
+                )
+                .await;
+                match file_name {
+                    Ok(file_name) => {
+                        println!(
+                            "The song has been successfully downloaded into `{}`",
+                            file_name
+                        );
+                    }
+                    Err(msg) => {
+                        eprintln!("An error has occured: {}", msg);
+                        continue;
+                    }
+                }
+            }
+            Action::List => {
+                let results = fs::read_dir(paths.download());
+                let results = match results {
+                    Ok(results) => results,
+                    Err(_) => {
+                        println!(
+                            "No directory has been found at `{}`",
+                            paths.download_as_str()
+                        );
+                        continue;
+                    }
+                };
+
+                let paths: Vec<std::io::Result<std::fs::DirEntry>> = results.collect();
+                if paths.len() == 0 {
+                    println!("No song has been downloaded yet");
+                    continue;
+                }
+                let printer = paths.prepare();
+                printer.print();
+                let range = printer.rows();
+                let id = match ask_for_id("Choose a song to reproduce", &range) {
+                    Ok(id) => id,
+                    Err(_) => {
+                        eprintln!("An error occured");
+                        continue;
+                    }
+                };
+                if let None = id {
+                    continue;
+                }
+                let item: &std::fs::DirEntry = paths.get(id.unwrap()).unwrap().as_ref().unwrap();
+                let file_name = item.path();
+                if let Err(msg) = downloader::play(&player, file_name.to_str().unwrap()) {
+                    eprintln!("An error occured: {}", msg);
+                    continue;
+                }
+            }
+            Action::Listen => {
+                let result = match search(&manager).await {
+                    Ok(result) => result,
+                    Err(msg) => {
+                        if !msg.is::<InquireError>() {
+                            eprintln!("An error occured: {}", msg);
+                        }
+                        continue;
+                    }
+                };
+                let result = match result {
+                    Some(result) => result,
+                    None => {
+                        println!("An empty query can't produce any result");
+                        continue;
+                    }
+                };
+
+                let printer = result.prepare();
+                printer.print();
+                let range = printer.rows();
+
+                let ans = Confirm::new("Do you want to reproduce a song?").prompt_skippable();
+                let ans = loop {
+                    let ans = match ans {
+                        Ok(ans) => ans,
+                        Err(_) => {
+                            eprintln!("An error occured, please try again");
+                            continue;
+                        }
+                    };
+                    break ans;
+                };
+                if ans == None || !ans.unwrap() {
+                    continue;
+                }
+                let id = match ask_for_id("Choose a song to reproduce", range) {
+                    Ok(id) => id,
+                    Err(_) => {
+                        eprintln!("An error occured");
+                        continue;
+                    }
+                };
+                if let None = id {
+                    continue;
+                }
+                let item: &QueryResultData = result.data().get(id.unwrap()).unwrap();
+                let file_name = paths.cache().join(format!(
+                    "{} -- {}.mp3",
+                    item.track_name(),
+                    item.artist_name()
+                ));
+
+                if let Err(msg) = stream(
+                    &manager,
+                    &player,
+                    item.track_url().as_str(),
+                    file_name.to_str().unwrap(),
+                ) {
+                    eprintln!("An error occured: {}", msg);
+                    continue;
+                }
+            }
+            Action::ClearDownload => {
+                let ans = Confirm::new("Are you sure you want to delete all downloaded media?")
+                    .prompt_skippable();
+                let ans = match ans {
+                    Ok(ans) => ans,
+                    Err(msg) => {
+                        eprintln!("An error occured: {}", msg);
+                        continue;
+                    }
+                };
+
+                if ans == None || !ans.unwrap() {
+                    continue;
+                }
+                println!("Ok, then. Cleaning the directory...");
+                match delete_files(paths.download_as_str()) {
+                    Ok(count) => {
+                        println!("Cleaning complete: {} files removed", count);
+                    }
+                    Err(msg) => {
+                        eprintln!("An error occured: {}", msg);
+                    }
+                }
+            }
+            Action::ClearCache => {
+                let ans = Confirm::new("Are you sure you want to delete all cached media?")
+                    .prompt_skippable();
+                let ans = match ans {
+                    Ok(ans) => ans,
+                    Err(msg) => {
+                        eprintln!("An error occured: {}", msg);
+                        continue;
+                    }
+                };
+
+                if ans == None || !ans.unwrap() {
+                    continue;
+                }
+
+                println!("Ok, then. Cleaning the directory...");
+                match delete_files(paths.cache_as_str()) {
+                    Ok(count) => {
+                        println!("Cleaning complete: {} files removed", count);
+                    }
+                    Err(msg) => {
+                        eprintln!("An error occured: {}", msg);
+                    }
+                }
+            }
+            Action::Quit => {
+                break;
+            }
+        }
+    }
+
+    println!("Shutting down... bye");
+}
+
+/// Utility function that handles the research iter: asking the user
+/// for a query and using the `plugin_manager` to retrieve information
+/// from plugins
+async fn search(pm: &PluginManager) -> Result<Option<QueryResult>, Box<dyn std::error::Error>> {
+    const OPTIONS: [&str; 2] = ["Raw", "Detailed"];
+    let ans = Select::new("What kind of search?", OPTIONS.to_vec()).prompt()?;
+    let info = match ans {
+        "Raw" => {
+            let raw = Text::new("Search query:").prompt()?;
+            QueryInfo::as_raw(&raw)
+        }
+        "Detailed" => {
+            let mut track = Text::new("Track name:").prompt_skippable()?;
+            let mut artist = Text::new("Artist name:").prompt_skippable()?;
+            let mut other_info = Text::new("Other info:").prompt_skippable()?;
+
+            QueryInfo::as_detailed(
+                track.get_or_insert(String::new()),
+                artist.get_or_insert(String::new()),
+                other_info.get_or_insert(String::new()),
+            )
+        }
+        _ => QueryInfo::as_raw(""),
+    };
+
+    if info.is_empty() {
+        return Ok(None);
+    }
+
+    let result = pm.query(info).await?;
+    Ok(Some(result))
+}
+
+/// Prompts the user until he chooses a result providing its id.
+fn ask_for_id(
+    message: &str,
+    range: &Range<usize>,
+) -> Result<Option<usize>, Box<dyn std::error::Error>> {
+    let message = format!(
+        "{}. Provide a value in [{}, {}]",
+        message,
+        range.start,
+        range.end - 1
+    );
+    let error_message = format!("The value must be in [{}, {}]", range.start, range.end);
+    let ans = CustomType::new(&message)
+        .with_error_message(&error_message)
+        .with_parser(&|input: &str| {
+            let value = match input.parse::<usize>() {
+                Ok(value) => value,
+                Err(_) => {
+                    return Err(());
+                }
+            };
+
+            if !range.contains(&value) {
+                return Err(());
+            }
+            Ok(value)
+        })
+        .prompt_skippable()?;
+    Ok(ans)
+}
+
+/// Utility function that handled the download procedure. Produces a
+/// progress bar associated to download progress
+async fn downlaod(
+    pm: &PluginManager,
+    url: &str,
+    file_name: &str,
+) -> Result<String, Box<dyn std::error::Error>> {
+    pm.download(url, file_name, |rx| {
+        let mut pb = termprogress::progress::Bar::default();
+        pb.fit();
+        pb.set_title("Downloading...");
+
+        loop {
+            match rx.recv() {
+                Ok(value) => {
+                    pb.set_progress(value as f64 / 100.0);
+                    if value == 100.0 {
+                        break;
+                    }
+                }
+                Err(_) => {
+                    // The sender has terminated sending data
+                    break;
+                }
+            }
+        }
+
+        pb.complete();
+    })
+    .await
+}
+
+fn stream(
+    pm: &PluginManager,
+    player: &Player,
+    url: &str,
+    file_name: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
+    pm.stream(url, file_name)?;
+    download_and_play(player, file_name)
+}
+
+/// Utility function that deletes all files in a directory
+/// and returns the number of files that have been deleted
+fn delete_files(dir: &str) -> Result<u32, Box<dyn std::error::Error>> {
+    let files = fs::read_dir(dir)?;
+
+    let mut removed_count = 0;
+    for file in files {
+        fs::remove_file(file?.path())?;
+        removed_count += 1;
+    }
+
+    Ok(removed_count)
+}
