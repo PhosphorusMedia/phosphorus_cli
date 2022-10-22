@@ -1,6 +1,6 @@
 use tui_realm_stdlib::{Container, Label};
 use tuirealm::{
-    props::{Alignment, Borders, Color, Layout},
+    props::{Alignment, Borders, Color, Layout, BorderSides},
     tui::layout::{Constraint, Direction},
     Component, MockComponent, NoUserEvent,
 };
@@ -20,15 +20,19 @@ impl StatusBar {
                     .alignment(Alignment::Left)
                     .text("Press ESC to quit"),
             ),
-            Box::new(Label::default().alignment(Alignment::Right).text("Welcome")),
+            Box::new(
+                Label::default()
+                    .alignment(Alignment::Right)
+                    .text("Welcome")
+            ),
         ];
 
         StatusBar {
             component: Container::default()
                 .children(children)
                 .background(Color::LightGreen)
-                .foreground(Color::LightGreen)
-                .borders(Borders::default())
+                .foreground(Color::Black)
+                .borders(Borders::default().sides(BorderSides::empty()))
                 .layout(
                     Layout::default()
                         .direction(Direction::Horizontal)

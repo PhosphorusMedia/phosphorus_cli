@@ -27,7 +27,6 @@ pub enum AppMsg {
     Quit,
     LoseFocus,
     GoNextItem,
-    GoPreviousItem,
     None,
 }
 
@@ -158,6 +157,12 @@ impl Update<AppMsg> for Model {
                 }
                 AppMsg::GoNextItem => {
                     self.active = self.active.next();
+                    /* This if statement is necessary to display components
+                       into the container as not focused when another component
+                       of the same container is focused.
+
+                       DO NOT REMOVE
+                     */
                     if let FocusableItem::PlaylistList = self.active {
                         assert!(self.app.active(&self.active.to_id()).is_ok());    
                     }

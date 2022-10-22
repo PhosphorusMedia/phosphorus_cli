@@ -74,7 +74,7 @@ impl Component<AppMsg, NoUserEvent> for AppWindow {
             Event::Keyboard(KeyEvent { code: Key::Esc, .. }) => {
                 return Some(AppMsg::LoseFocus)
             }
-            Event::Keyboard(KeyEvent { code: Key::Tab, .. }) => {
+            Event::Keyboard(KeyEvent { code: Key::Tab, ..}) => {
                 if index < 2 {
                     self.active = Some(index + 1);
                     child.attr(Attribute::Focus, AttrValue::Flag(false));
@@ -108,9 +108,6 @@ impl Component<AppMsg, NoUserEvent> for AppWindow {
                     code: Key::Home, ..
                 }) => Cmd::GoTo(Position::Begin),
                 Event::Keyboard(KeyEvent { code: Key::End, .. }) => Cmd::GoTo(Position::End),
-                Event::Keyboard(KeyEvent { code: Key::Tab, .. }) => {
-                    return Some(AppMsg::GoNextItem)
-                }
                 Event::Keyboard(KeyEvent { code: Key::Esc, .. }) => return Some(AppMsg::LoseFocus),
                 _ => Cmd::None,
             };

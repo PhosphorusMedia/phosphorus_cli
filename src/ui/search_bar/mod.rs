@@ -1,7 +1,7 @@
 use tui_realm_stdlib::{Container, Phantom};
 use tuirealm::{
     command::{Cmd, Position},
-    event::{Key, KeyEvent, KeyModifiers},
+    event::{Key, KeyEvent},
     props::{self, Borders, Color, Layout},
     tui::layout::{Constraint, Direction},
     Component, Event, MockComponent, NoUserEvent,
