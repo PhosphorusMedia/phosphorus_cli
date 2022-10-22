@@ -1,4 +1,4 @@
-use tuirealm::{PollStrategy, Update, Attribute, AttrValue};
+use tuirealm::{AttrValue, Attribute, PollStrategy, Update};
 use ui::Model;
 
 use crate::ui::Id;
@@ -24,7 +24,7 @@ fn main() {
                         msg = model.update(msg);
                     }
                 }
-            },
+            }
             Err(err) => {
                 assert!(model
                     .app
@@ -34,7 +34,7 @@ fn main() {
                         AttrValue::String(format!("Application error: {}", err)),
                     )
                     .is_ok());
-            },
+            }
             _ => {}
         }
 
@@ -50,4 +50,3 @@ fn main() {
     let _ = model.terminal.disable_raw_mode();
     let _ = model.terminal.clear_screen();
 }
-

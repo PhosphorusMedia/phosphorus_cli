@@ -1,20 +1,68 @@
 use std::time::Duration;
 
-use tuirealm::{NoUserEvent, Application, terminal::TerminalBridge, tui::layout::{Layout, Direction, Constraint}, Update, EventListenerCfg};
+use tuirealm::{
+    terminal::TerminalBridge,
+    tui::layout::{Constraint, Direction, Layout},
+    Application, EventListenerCfg, NoUserEvent, Update,
+};
 
-use crate::ui::app_window::AppWindow;
+use crate::ui::{app_window::AppWindow, search_bar::SearchBar, status_bar::StatusBar};
 
 mod app_window;
+mod playlist_list;
+mod queue;
+mod search_bar;
+mod status_bar;
 
 #[derive(Debug, Eq, PartialEq, Clone, Hash)]
 pub enum Id {
+    Label,
     AppWindow,
-    Label
+    SearchBar,
+    StatusBar,
 }
 
 #[derive(Debug, PartialEq)]
 pub enum AppMsg {
-    Quit
+    Quit,
+    LoseFocus,
+    GoNextItem,
+    GoPreviousItem,
+    None,
+}
+
+pub enum FocusableItem {
+    SearchBar,
+    PlaylistList,
+    Queue,
+    MainWindow,
+    SecondaryWindow,
+}
+
+impl FocusableItem {
+    pub fn quit(&self) -> bool {
+        match self {
+            FocusableItem::SecondaryWindow => false,
+            _ => true,
+        }
+    }
+
+    pub fn next(&self) -> Self {
+        match self {
+            FocusableItem::SearchBar => FocusableItem::PlaylistList,
+            FocusableItem::PlaylistList => FocusableItem::MainWindow,
+            FocusableItem::Queue => FocusableItem::SearchBar,
+            FocusableItem::MainWindow => FocusableItem::Queue,
+            FocusableItem::SecondaryWindow => FocusableItem::Queue,
+        }
+    }
+
+    pub fn to_id(&self) -> Id {
+        match self {
+            FocusableItem::SearchBar => Id::SearchBar,
+            _ => Id::AppWindow,
+        }
+    }
 }
 
 pub struct Model {
@@ -26,6 +74,8 @@ pub struct Model {
     pub redraw: bool,
     /// Used to draw to terminal
     pub terminal: TerminalBridge,
+    // Used to track the active component
+    pub active: FocusableItem,
 }
 
 impl Model {
@@ -39,12 +89,16 @@ impl Model {
                     .margin(1)
                     .constraints(
                         [
-                            Constraint::Length(25), // AppWindow
+                            Constraint::Length(3), // SearchBar
+                            Constraint::Min(10),   // AppWindow
+                            Constraint::Length(1), // StatusBar
                         ]
                         .as_ref(),
                     )
                     .split(f.size());
-                self.app.view(&Id::AppWindow, f, chunks[0]);
+                self.app.view(&Id::SearchBar, f, chunks[0]);
+                self.app.view(&Id::AppWindow, f, chunks[1]);
+                self.app.view(&Id::StatusBar, f, chunks[2]);
             })
             .is_ok());
     }
@@ -58,29 +112,36 @@ impl Model {
             EventListenerCfg::default()
                 .default_input_listener(Duration::from_millis(20))
                 .poll_timeout(Duration::from_millis(10))
-                .tick_interval(Duration::from_secs(1)),
+                .tick_interval(Duration::from_millis(100)),
         );
-    
+
         // Mounts the components
         assert!(app
-            .mount(
-                Id::AppWindow,
-                Box::new(AppWindow::new()),
-                Vec::default()
-            )
-            .is_ok()
-        );
-    
+            .mount(Id::SearchBar, SearchBar::default().boxed(), Vec::default())
+            .is_ok());
+        assert!(app
+            .mount(Id::AppWindow, Box::new(AppWindow::new()), Vec::default())
+            .is_ok());
+        assert!(app
+            .mount(Id::StatusBar, StatusBar::new().boxed(), Vec::default())
+            .is_ok());
+
         // Initializes focus
-        assert!(app.active(&Id::AppWindow).is_ok());
-    
+        assert!(app.active(&Id::SearchBar).is_ok());
+
         app
     }
 }
 
 impl Default for Model {
     fn default() -> Self {
-        Self { app: Self::init_app(), quit: false, redraw: true, terminal: TerminalBridge::new().expect("Cannot initialize terminal") }
+        Self {
+            app: Self::init_app(),
+            quit: false,
+            redraw: true,
+            terminal: TerminalBridge::new().expect("Cannot initialize terminal"),
+            active: FocusableItem::SearchBar,
+        }
     }
 }
 
@@ -90,6 +151,19 @@ impl Update<AppMsg> for Model {
             self.redraw = true;
             match msg {
                 AppMsg::Quit => self.quit = true,
+                AppMsg::LoseFocus => {
+                    if self.active.quit() {
+                        self.quit = true
+                    }
+                }
+                AppMsg::GoNextItem => {
+                    self.active = self.active.next();
+                    if let FocusableItem::PlaylistList = self.active {
+                        assert!(self.app.active(&self.active.to_id()).is_ok());    
+                    }
+                    assert!(self.app.active(&self.active.to_id()).is_ok());
+                }
+                _ => (),
             }
         }
 
