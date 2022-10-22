@@ -1,5 +1,3 @@
-use std::ops::Index;
-
 use tui_realm_stdlib::Table;
 use tuirealm::{
     command::{Cmd, Direction, Position},
@@ -29,7 +27,7 @@ impl Queue {
                 builder.add_col(TextSpan::new(item));
                 builder.add_row();
             }
-            builder.add_col(TextSpan::new(&list.index(&list.len() - 1)));
+            builder.add_col(TextSpan::new(&list.get(&list.len() - 1).unwrap()));
         }
 
         let component = Table::default()

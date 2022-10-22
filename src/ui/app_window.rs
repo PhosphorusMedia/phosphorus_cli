@@ -2,17 +2,33 @@ use tui_realm_stdlib::Container;
 use tuirealm::{
     command::{Cmd, Direction as CDir, Position},
     event::{Key, KeyEvent},
-    props::{Layout, Style},
+    props::{Layout, Style, Borders, BorderSides},
     tui::layout::{Constraint, Direction},
     AttrValue, Attribute, Component, Event, MockComponent, NoUserEvent,
 };
 
-use super::{playlist_list::PlaylistList, queue::Queue, search_bar::SearchBar, AppMsg};
+use super::{
+    playlist_list::PlaylistList, queue::Queue, welcome_window::WelcomWindow,
+    AppMsg,
+};
+
+pub enum MainWindowType {
+    Welcome
+}
+
+impl MainWindowType {
+    pub fn need_focus(&self) -> bool {
+        match self {
+            MainWindowType::Welcome => false,
+        }
+    }
+}
 
 #[derive(MockComponent)]
 pub struct AppWindow {
     component: Container,
     active: Option<usize>,
+    pub main_window_type: MainWindowType,
 }
 
 impl AppWindow {
@@ -25,7 +41,7 @@ impl AppWindow {
                     String::from("Playlist 3"),
                 ])
                 .boxed(),
-            SearchBar::default().boxed(),
+            WelcomWindow::default().boxed(),
             Queue::default()
                 .list(vec![
                     String::from("Song 1"),
@@ -36,7 +52,9 @@ impl AppWindow {
         ];
 
         AppWindow {
-            component: Container::default().children(children).layout(
+            component: Container::default()
+                .borders(Borders::default().sides(BorderSides::empty()))
+                .children(children).layout(
                 Layout::default()
                     .direction(Direction::Horizontal)
                     .constraints(
@@ -49,20 +67,21 @@ impl AppWindow {
                     ),
             ),
             active: Some(0),
+            main_window_type: MainWindowType::Welcome
         }
     }
 }
 
 impl Component<AppMsg, NoUserEvent> for AppWindow {
-    fn on(&mut self, ev: tuirealm::Event<NoUserEvent>) -> Option<AppMsg> {        
+    fn on(&mut self, ev: tuirealm::Event<NoUserEvent>) -> Option<AppMsg> {
         match ev {
             Event::FocusGained => {
                 for child in self.component.children.as_mut_slice() {
                     child.attr(Attribute::Focus, AttrValue::Flag(false));
                     child.attr(Attribute::FocusStyle, AttrValue::Style(Style::default()));
                 }
-            },
-            _ => ()
+            }
+            _ => (),
         };
 
         let index = self.active.unwrap();
@@ -71,14 +90,19 @@ impl Component<AppMsg, NoUserEvent> for AppWindow {
         child.attr(Attribute::Focus, AttrValue::Flag(true));
 
         let _ = match ev {
-            Event::Keyboard(KeyEvent { code: Key::Esc, .. }) => {
-                return Some(AppMsg::LoseFocus)
-            }
-            Event::Keyboard(KeyEvent { code: Key::Tab, ..}) => {
+            Event::Keyboard(KeyEvent { code: Key::Esc, .. }) => return Some(AppMsg::LoseFocus),
+            Event::Keyboard(KeyEvent { code: Key::Tab, .. }) => {
+                let mut msg = AppMsg::GoNextItem;
+
                 if index < 2 {
-                    self.active = Some(index + 1);
                     child.attr(Attribute::Focus, AttrValue::Flag(false));
-                    child = children.get_mut(index).unwrap();
+
+                    self.active = Some(index + 1);
+                    if !self.main_window_type.need_focus() {
+                        self.active = Some(index + 2);
+                        msg = AppMsg::GoForward(2);
+                    }
+                    child = children.get_mut(self.active.unwrap()).unwrap();
                     child.attr(Attribute::Focus, AttrValue::Flag(true));
                 } else {
                     child.attr(Attribute::Focus, AttrValue::Flag(false));
@@ -86,7 +110,7 @@ impl Component<AppMsg, NoUserEvent> for AppWindow {
                     child.attr(Attribute::Focus, AttrValue::Flag(true));
                     self.active = Some(0);
                 }
-                return Some(AppMsg::GoNextItem);
+                return Some(msg);
             }
             _ => (),
         };

@@ -48,5 +48,4 @@ fn main() {
     // Terminate terminal
     let _ = model.terminal.leave_alternate_screen();
     let _ = model.terminal.disable_raw_mode();
-    let _ = model.terminal.clear_screen();
 }

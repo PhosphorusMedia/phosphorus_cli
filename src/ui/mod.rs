@@ -13,6 +13,7 @@ mod playlist_list;
 mod queue;
 mod search_bar;
 mod status_bar;
+mod welcome_window;
 
 #[derive(Debug, Eq, PartialEq, Clone, Hash)]
 pub enum Id {
@@ -24,9 +25,15 @@ pub enum Id {
 
 #[derive(Debug, PartialEq)]
 pub enum AppMsg {
+    /// Closes the application
     Quit,
+    /// The current active componen looses its focus
     LoseFocus,
+    /// The focus is passed to the next component
     GoNextItem,
+    /// Is like calling GoNext n time, so GoNextItem
+    /// is equivalent to GoForward(1)
+    GoForward(u16),
     None,
 }
 
@@ -89,7 +96,7 @@ impl Model {
                     .constraints(
                         [
                             Constraint::Length(3), // SearchBar
-                            Constraint::Min(10),   // AppWindow
+                            Constraint::Min(6),   // AppWindow
                             Constraint::Length(1), // StatusBar
                         ]
                         .as_ref(),
@@ -111,7 +118,7 @@ impl Model {
             EventListenerCfg::default()
                 .default_input_listener(Duration::from_millis(20))
                 .poll_timeout(Duration::from_millis(10))
-                .tick_interval(Duration::from_millis(100)),
+                .tick_interval(Duration::from_millis(65)),
         );
 
         // Mounts the components
@@ -158,13 +165,20 @@ impl Update<AppMsg> for Model {
                 AppMsg::GoNextItem => {
                     self.active = self.active.next();
                     /* This if statement is necessary to display components
-                       into the container as not focused when another component
-                       of the same container is focused.
+                      into the container as not focused when another component
+                      of the same container is focused.
 
-                       DO NOT REMOVE
-                     */
+                      DO NOT REMOVE
+                    */
                     if let FocusableItem::PlaylistList = self.active {
-                        assert!(self.app.active(&self.active.to_id()).is_ok());    
+                        assert!(self.app.active(&self.active.to_id()).is_ok());
+                    }
+                    assert!(self.app.active(&self.active.to_id()).is_ok());
+                },
+                AppMsg::GoForward(mut n) => {
+                    while n > 0 {
+                        self.active = self.active.next();
+                        n -= 1;
                     }
                     assert!(self.app.active(&self.active.to_id()).is_ok());
                 }
