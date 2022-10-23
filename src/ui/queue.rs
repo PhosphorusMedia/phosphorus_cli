@@ -11,7 +11,6 @@ use super::AppMsg;
 #[derive(MockComponent)]
 pub struct Queue {
     component: Table,
-    list: Vec<String>,
 }
 
 impl Queue {
@@ -42,7 +41,7 @@ impl Queue {
             .widths(&[70, 30])
             .modifiers(TextModifiers::BOLD | TextModifiers::UNDERLINED);
 
-        Self { component, list }
+        Self { component }
     }
 
     pub fn boxed(self) -> Box<Self> {

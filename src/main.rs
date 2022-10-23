@@ -1,21 +1,30 @@
 use core::playlist_manager::PlaylistManager;
-use std::ffi::OsString;
 use tuirealm::{AttrValue, Attribute, PollStrategy, Update};
 use ui::Model;
 
 use crate::ui::Id;
 
 mod ui;
+mod config;
 
 fn main() {
-    let config_dir = OsString::from("/home/leonardo/.phosphorus/data/playlists");
-    let playlist_manager = match PlaylistManager::load(config_dir) {
+    let paths = match config::config_env() {
+        Ok(paths) => paths,
+        Err(msg) => {
+            eprintln!("Preliminary checks failed");
+            eprintln!("The error was: {}", msg);
+            std::process::exit(1);
+        }
+    };
+    //let config_dir = OsString::from("/home/leonardo/.phosphorus");
+    let playlist_manager = match PlaylistManager::load(paths.data().clone().into_os_string()) {
         Ok(pm) => pm,
         Err(msg) => {
             eprintln!("An error occured while trying to fetch playlists data");
+            eprintln!("{}", paths.data_as_str());
             eprintln!("{}", msg);
             std::process::exit(1);
-        },
+        }
     };
 
     // Setup model

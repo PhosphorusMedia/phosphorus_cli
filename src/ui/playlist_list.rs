@@ -2,7 +2,7 @@ use tui_realm_stdlib::Table;
 use tuirealm::{
     command::{Cmd, Direction, Position},
     event::{Key, KeyEvent},
-    props::{Color, Style, TableBuilder, TextModifiers, TextSpan},
+    props::{Color, TableBuilder, TextModifiers, TextSpan},
     Component, Event, MockComponent, NoUserEvent,
 };
 
@@ -11,7 +11,6 @@ use super::AppMsg;
 #[derive(MockComponent)]
 pub struct PlaylistList {
     component: Table,
-    list: Vec<String>,
 }
 
 impl PlaylistList {
@@ -40,7 +39,7 @@ impl PlaylistList {
             .widths(&[100])
             .modifiers(TextModifiers::BOLD | TextModifiers::UNDERLINED);
 
-        Self { component, list }
+        Self { component }
     }
 
     pub fn boxed(self) -> Box<Self> {

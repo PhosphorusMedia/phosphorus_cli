@@ -35,7 +35,7 @@ impl AppWindow {
     pub fn new(pm: PlaylistManager) -> Self {
         let children: Vec<Box<dyn MockComponent>> = vec![
             PlaylistList::default()
-                .list(pm.names().iter().map(|name| {String::from(*name)}).collect())
+                .list(pm.names().iter().map(|name| String::from(*name)).collect())
                 .boxed(),
             WelcomWindow::default().boxed(),
             Queue::default()
@@ -65,7 +65,7 @@ impl AppWindow {
                 ),
             active: Some(0),
             main_window_type: MainWindowType::Welcome,
-            playlist_manager: pm
+            playlist_manager: pm,
         }
     }
 }

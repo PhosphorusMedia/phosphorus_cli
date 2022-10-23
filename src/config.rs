@@ -1,8 +1,9 @@
 use std::path::PathBuf;
 
 const BASE: &'static str = ".phosphorus";
-const CACHE: &'static str = ".phosphorus/cache";
-const DOWNLOAD: &'static str = ".phosphorus/download";
+const DATA: &'static str = "data";
+const CACHE: &'static str = "cache";
+const DOWNLOAD: &'static str = "download";
 
 #[derive(Debug)]
 pub enum ConfigError {
@@ -28,15 +29,17 @@ impl std::error::Error for ConfigError {}
 #[allow(dead_code)]
 pub struct Paths {
     base: PathBuf,
+    data: PathBuf,
     cache: PathBuf,
     download: PathBuf,
 }
 
 #[allow(dead_code)]
 impl Paths {
-    pub fn new(base: PathBuf, cache: PathBuf, download: PathBuf) -> Self {
+    pub fn new(base: PathBuf, data: PathBuf, cache: PathBuf, download: PathBuf) -> Self {
         Paths {
             base,
+            data,
             cache,
             download,
         }
@@ -48,6 +51,14 @@ impl Paths {
 
     pub fn base_as_str(&self) -> &str {
         &self.base.to_str().unwrap()
+    }
+
+    pub fn data(&self) -> &PathBuf {
+        &self.data
+    }
+
+    pub fn data_as_str(&self) -> &str {
+        &self.data.to_str().unwrap()
     }
 
     pub fn cache(&self) -> &PathBuf {
@@ -82,12 +93,15 @@ pub fn config_env() -> Result<Paths, ConfigError> {
     let base = home.join(BASE);
     check_folder(&base, BASE)?;
 
-    let cache = home.join(CACHE);
+    let data = base.join(DATA);
+    check_folder(&data, DATA)?;
+
+    let cache = data.join(CACHE);
     check_folder(&cache, CACHE)?;
-    let download = home.join(DOWNLOAD);
+    let download = data.join(DOWNLOAD);
     check_folder(&download, DOWNLOAD)?;
 
-    Ok(Paths::new(base, cache, download))
+    Ok(Paths::new(base, data, cache, download))
 }
 
 fn check_folder(path: &std::path::PathBuf, dir: &'static str) -> Result<(), ConfigError> {

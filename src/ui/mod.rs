@@ -137,7 +137,11 @@ impl Model {
             .mount(Id::SearchBar, SearchBar::default().boxed(), Vec::default())
             .is_ok());
         assert!(app
-            .mount(Id::AppWindow, Box::new(AppWindow::new(playlist_manager)), Vec::default())
+            .mount(
+                Id::AppWindow,
+                Box::new(AppWindow::new(playlist_manager)),
+                Vec::default()
+            )
             .is_ok());
         assert!(app
             .mount(Id::StatusBar, StatusBar::new().boxed(), Vec::default())
