@@ -1,3 +1,5 @@
+use core::playlist_manager::PlaylistManager;
+use std::ffi::OsString;
 use tuirealm::{AttrValue, Attribute, PollStrategy, Update};
 use ui::Model;
 
@@ -6,8 +8,18 @@ use crate::ui::Id;
 mod ui;
 
 fn main() {
+    let config_dir = OsString::from("/home/leonardo/.phosphorus/data/playlists");
+    let playlist_manager = match PlaylistManager::load(config_dir) {
+        Ok(pm) => pm,
+        Err(msg) => {
+            eprintln!("An error occured while trying to fetch playlists data");
+            eprintln!("{}", msg);
+            std::process::exit(1);
+        },
+    };
+
     // Setup model
-    let mut model = Model::default();
+    let mut model = Model::new(playlist_manager);
     // Enter alternate screen
     let _ = model.terminal.enter_alternate_screen();
     let _ = model.terminal.enable_raw_mode();

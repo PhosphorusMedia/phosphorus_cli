@@ -1,3 +1,4 @@
+use core::playlist_manager::PlaylistManager;
 use std::time::Duration;
 
 use tuirealm::{
@@ -85,6 +86,16 @@ pub struct Model {
 }
 
 impl Model {
+    pub fn new(playlist_manager: PlaylistManager) -> Self {
+        Self {
+            app: Self::init_app(playlist_manager),
+            quit: false,
+            redraw: true,
+            terminal: TerminalBridge::new().expect("Cannot initialize terminal"),
+            active: FocusableItem::SearchBar,
+        }
+    }
+
     pub fn view(&mut self) {
         assert!(self
             .terminal
@@ -96,7 +107,7 @@ impl Model {
                     .constraints(
                         [
                             Constraint::Length(3), // SearchBar
-                            Constraint::Min(6),   // AppWindow
+                            Constraint::Min(6),    // AppWindow
                             Constraint::Length(1), // StatusBar
                         ]
                         .as_ref(),
@@ -109,7 +120,7 @@ impl Model {
             .is_ok());
     }
 
-    pub fn init_app() -> Application<Id, AppMsg, NoUserEvent> {
+    pub fn init_app(playlist_manager: PlaylistManager) -> Application<Id, AppMsg, NoUserEvent> {
         // Setup application
         // NOTE: NoUserEvent is a shorthand to tell tui-realm we're not going to use any custom user event
         // NOTE: the event listener is configured to use the default crossterm input listener and to raise a Tick event each second
@@ -126,7 +137,7 @@ impl Model {
             .mount(Id::SearchBar, SearchBar::default().boxed(), Vec::default())
             .is_ok());
         assert!(app
-            .mount(Id::AppWindow, Box::new(AppWindow::new()), Vec::default())
+            .mount(Id::AppWindow, Box::new(AppWindow::new(playlist_manager)), Vec::default())
             .is_ok());
         assert!(app
             .mount(Id::StatusBar, StatusBar::new().boxed(), Vec::default())
@@ -136,18 +147,6 @@ impl Model {
         assert!(app.active(&Id::SearchBar).is_ok());
 
         app
-    }
-}
-
-impl Default for Model {
-    fn default() -> Self {
-        Self {
-            app: Self::init_app(),
-            quit: false,
-            redraw: true,
-            terminal: TerminalBridge::new().expect("Cannot initialize terminal"),
-            active: FocusableItem::SearchBar,
-        }
     }
 }
 
@@ -174,7 +173,7 @@ impl Update<AppMsg> for Model {
                         assert!(self.app.active(&self.active.to_id()).is_ok());
                     }
                     assert!(self.app.active(&self.active.to_id()).is_ok());
-                },
+                }
                 AppMsg::GoForward(mut n) => {
                     while n > 0 {
                         self.active = self.active.next();

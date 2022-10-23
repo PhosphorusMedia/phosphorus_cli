@@ -1,19 +1,18 @@
+use core::playlist_manager::PlaylistManager;
+
 use tui_realm_stdlib::Container;
 use tuirealm::{
     command::{Cmd, Direction as CDir, Position},
     event::{Key, KeyEvent},
-    props::{Layout, Style, Borders, BorderSides},
+    props::{BorderSides, Borders, Layout, Style},
     tui::layout::{Constraint, Direction},
     AttrValue, Attribute, Component, Event, MockComponent, NoUserEvent,
 };
 
-use super::{
-    playlist_list::PlaylistList, queue::Queue, welcome_window::WelcomWindow,
-    AppMsg,
-};
+use super::{playlist_list::PlaylistList, queue::Queue, welcome_window::WelcomWindow, AppMsg};
 
 pub enum MainWindowType {
-    Welcome
+    Welcome,
 }
 
 impl MainWindowType {
@@ -29,17 +28,14 @@ pub struct AppWindow {
     component: Container,
     active: Option<usize>,
     pub main_window_type: MainWindowType,
+    playlist_manager: PlaylistManager,
 }
 
 impl AppWindow {
-    pub fn new() -> Self {
+    pub fn new(pm: PlaylistManager) -> Self {
         let children: Vec<Box<dyn MockComponent>> = vec![
             PlaylistList::default()
-                .list(vec![
-                    String::from("Playlist 1"),
-                    String::from("Playlist 2"),
-                    String::from("Playlist 3"),
-                ])
+                .list(pm.names().iter().map(|name| {String::from(*name)}).collect())
                 .boxed(),
             WelcomWindow::default().boxed(),
             Queue::default()
@@ -54,20 +50,22 @@ impl AppWindow {
         AppWindow {
             component: Container::default()
                 .borders(Borders::default().sides(BorderSides::empty()))
-                .children(children).layout(
-                Layout::default()
-                    .direction(Direction::Horizontal)
-                    .constraints(
-                        [
-                            Constraint::Percentage(20), // LeftBar
-                            Constraint::Percentage(60), // MainWindow
-                            Constraint::Percentage(20), // RightBar
-                        ]
-                        .as_ref(),
-                    ),
-            ),
+                .children(children)
+                .layout(
+                    Layout::default()
+                        .direction(Direction::Horizontal)
+                        .constraints(
+                            [
+                                Constraint::Percentage(20), // LeftBar
+                                Constraint::Percentage(60), // MainWindow
+                                Constraint::Percentage(20), // RightBar
+                            ]
+                            .as_ref(),
+                        ),
+                ),
             active: Some(0),
-            main_window_type: MainWindowType::Welcome
+            main_window_type: MainWindowType::Welcome,
+            playlist_manager: pm
         }
     }
 }

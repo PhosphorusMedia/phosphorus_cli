@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 plugin_manager = { path = "../plugin_manager" }
 youtube = { path = "../plugins/youtube" }
+core = { path = "../core" }
 tokio = { version = "1", features = ["full"] }
 rodio = "0.16.0"
 ascii_table = "4.0.2"

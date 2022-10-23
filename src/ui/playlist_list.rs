@@ -2,7 +2,7 @@ use tui_realm_stdlib::Table;
 use tuirealm::{
     command::{Cmd, Direction, Position},
     event::{Key, KeyEvent},
-    props::{Color, TableBuilder, TextSpan},
+    props::{Color, Style, TableBuilder, TextModifiers, TextSpan},
     Component, Event, MockComponent, NoUserEvent,
 };
 
@@ -24,10 +24,10 @@ impl PlaylistList {
         let mut builder = TableBuilder::default();
         if list.len() > 0 {
             for item in &list.as_slice()[0..&list.len() - 1] {
-                builder.add_col(TextSpan::new(item));
+                builder.add_col(TextSpan::new(item).italic());
                 builder.add_row();
             }
-            builder.add_col(TextSpan::new(&list.get(&list.len() - 1).unwrap()));
+            builder.add_col(TextSpan::new(&list.get(&list.len() - 1).unwrap()).italic());
         }
 
         let component = Table::default()
@@ -37,7 +37,8 @@ impl PlaylistList {
             .headers(&["Playlists"])
             .highlighted_str("➤ ")
             .row_height(1)
-            .widths(&[100]);
+            .widths(&[100])
+            .modifiers(TextModifiers::BOLD | TextModifiers::UNDERLINED);
 
         Self { component, list }
     }

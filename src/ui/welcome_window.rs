@@ -1,6 +1,7 @@
 use tui_realm_stdlib::Paragraph;
 use tuirealm::{
-    Component, MockComponent, NoUserEvent, props::{Alignment, TextSpan, Color},
+    props::{Alignment, Color, TextSpan},
+    Component, MockComponent, NoUserEvent,
 };
 
 use super::AppMsg;
@@ -29,9 +30,9 @@ impl Default for WelcomWindow {
                     TextSpan::new(""),
                     TextSpan::new("Music from everywhere, music for everyone")
                         .italic()
-                        .fg(Color::LightYellow)
+                        .fg(Color::LightYellow),
                 ])
-                .alignment(Alignment::Center)
+                .alignment(Alignment::Center),
         }
     }
 }
