@@ -4,7 +4,7 @@ use std::time::Duration;
 use tuirealm::{
     terminal::TerminalBridge,
     tui::layout::{Constraint, Direction, Layout},
-    Application, EventListenerCfg, NoUserEvent, Update,
+    Application, EventListenerCfg, NoUserEvent, Update, Sub, event::{KeyEvent, KeyModifiers, Key}, SubEventClause,
 };
 
 use crate::ui::{app_window::AppWindow, search_bar::SearchBar, status_bar::StatusBar};
@@ -15,6 +15,7 @@ mod queue;
 mod search_bar;
 mod status_bar;
 mod welcome_window;
+mod help_window;
 
 #[derive(Debug, Eq, PartialEq, Clone, Hash)]
 pub enum Id {
@@ -35,6 +36,7 @@ pub enum AppMsg {
     /// Is like calling GoNext n time, so GoNextItem
     /// is equivalent to GoForward(1)
     GoForward(u16),
+    ShowHelp,
     None,
 }
 
@@ -47,13 +49,6 @@ pub enum FocusableItem {
 }
 
 impl FocusableItem {
-    pub fn quit(&self) -> bool {
-        match self {
-            FocusableItem::SecondaryWindow => false,
-            _ => true,
-        }
-    }
-
     pub fn next(&self) -> Self {
         match self {
             FocusableItem::SearchBar => FocusableItem::PlaylistList,
@@ -70,6 +65,13 @@ impl FocusableItem {
             _ => Id::AppWindow,
         }
     }
+
+    pub fn below_item(&self) -> Option<Self> {
+        match self {
+            FocusableItem::SecondaryWindow => Some(FocusableItem::MainWindow),
+            _ => None
+        }
+    }
 }
 
 pub struct Model {
@@ -82,7 +84,9 @@ pub struct Model {
     /// Used to draw to terminal
     pub terminal: TerminalBridge,
     // Used to track the active component
-    pub active: FocusableItem,
+    active: FocusableItem,
+    secondary_window_active: bool,
+    esc_count: u8,
 }
 
 impl Model {
@@ -93,6 +97,8 @@ impl Model {
             redraw: true,
             terminal: TerminalBridge::new().expect("Cannot initialize terminal"),
             active: FocusableItem::SearchBar,
+            secondary_window_active: false,
+            esc_count: 0,
         }
     }
 
@@ -147,6 +153,37 @@ impl Model {
             .mount(Id::StatusBar, StatusBar::new().boxed(), Vec::default())
             .is_ok());
 
+        assert!(app.subscribe(&Id::AppWindow, Sub::new(
+            SubEventClause::Keyboard(KeyEvent {
+                        code: Key::Char('h'),
+                        modifiers: KeyModifiers::CONTROL
+                    }
+            ),
+            tuirealm::SubClause::Always)
+        ).is_ok());
+
+        /*assert!(app.subscribe(&Id::StatusBar, Sub::new(
+            SubEventClause::Keyboard(KeyEvent {
+                        code: Key::Char('h'),
+                        modifiers: KeyModifiers::CONTROL
+                    }
+            ),
+            tuirealm::SubClause::Always)
+        ).is_ok());
+        assert!(app.subscribe(&Id::StatusBar, Sub::new(
+            SubEventClause::Keyboard(KeyEvent {
+                        code: Key::Esc,
+                        modifiers: KeyModifiers::all()
+                    }
+            ),
+            tuirealm::SubClause::Always)
+        ).is_ok());*/
+
+        assert!(app.subscribe(&Id::StatusBar, Sub::new(
+            SubEventClause::Any,
+            tuirealm::SubClause::Always)
+        ).is_ok());
+
         // Initializes focus
         assert!(app.active(&Id::SearchBar).is_ok());
 
@@ -156,13 +193,23 @@ impl Model {
 
 impl Update<AppMsg> for Model {
     fn update(&mut self, msg: Option<AppMsg>) -> Option<AppMsg> {
+        let mut esc_pressed = false;
+
         if let Some(msg) = msg {
             self.redraw = true;
             match msg {
                 AppMsg::Quit => self.quit = true,
                 AppMsg::LoseFocus => {
-                    if self.active.quit() {
-                        self.quit = true
+                    if self.secondary_window_active {
+                        self.secondary_window_active = false;
+                        if let Some(item) = self.active.below_item() {
+                            self.active = item;
+                            assert!(self.app.active(&self.active.to_id()).is_ok());
+                        }
+                    } else {
+                        esc_pressed = true;
+                        self.esc_count += 1;
+                        if self.esc_count == 2 { return Some(AppMsg::Quit) };
                     }
                 }
                 AppMsg::GoNextItem => {
@@ -173,7 +220,11 @@ impl Update<AppMsg> for Model {
 
                       DO NOT REMOVE
                     */
-                    if let FocusableItem::PlaylistList = self.active {
+                    if let FocusableItem::MainWindow = self.active {
+                        if self.secondary_window_active {
+                            self.active = FocusableItem::SecondaryWindow;
+                        }
+                    } else if let FocusableItem::PlaylistList = self.active {
                         assert!(self.app.active(&self.active.to_id()).is_ok());
                     }
                     assert!(self.app.active(&self.active.to_id()).is_ok());
@@ -184,9 +235,23 @@ impl Update<AppMsg> for Model {
                         n -= 1;
                     }
                     assert!(self.app.active(&self.active.to_id()).is_ok());
+                },
+                AppMsg::ShowHelp => {
+                    self.active = FocusableItem::SecondaryWindow;
+                    self.secondary_window_active = true;
+
+                    // Again, I don't know why this has to repeted
+                    assert!(self.app.active(&self.active.to_id()).is_ok());
+                    assert!(self.app.active(&self.active.to_id()).is_ok());
                 }
-                _ => (),
+                AppMsg::None => {
+                    esc_pressed = true;
+                },
             }
+        }
+
+        if !esc_pressed {
+            self.esc_count = 0;
         }
 
         None

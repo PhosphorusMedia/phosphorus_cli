@@ -1,7 +1,7 @@
 use tui_realm_stdlib::Input;
 use tuirealm::{
     command::{Cmd, CmdResult, Direction, Position},
-    event::{Key, KeyEvent},
+    event::{Key, KeyEvent, KeyModifiers},
     props::{Borders, Style, TextModifiers},
     AttrValue, Component, Event, MockComponent, NoUserEvent,
 };

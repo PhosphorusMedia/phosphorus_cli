@@ -21,7 +21,6 @@ impl Default for WelcomWindow {
     fn default() -> Self {
         Self {
             component: Paragraph::default()
-                //.title("Welcome in Phosphorus!", Alignment::Center)
                 .text(&[
                     TextSpan::new("Welcome in Phosphorus!")
                         .bold()

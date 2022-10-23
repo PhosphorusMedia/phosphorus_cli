@@ -1,7 +1,7 @@
 use tui_realm_stdlib::{Container, Phantom};
 use tuirealm::{
     command::{Cmd, Position},
-    event::{Key, KeyEvent},
+    event::{Key, KeyEvent, KeyModifiers},
     props::{self, Borders, Color, Layout},
     tui::layout::{Constraint, Direction},
     Component, Event, MockComponent, NoUserEvent,
@@ -78,7 +78,7 @@ impl Component<AppMsg, NoUserEvent> for SearchBar {
             }) => Cmd::Delete,
             Event::Keyboard(KeyEvent {
                 code: Key::Char(ch),
-                ..
+                modifiers: KeyModifiers::NONE | KeyModifiers::SHIFT
             }) => Cmd::Type(ch),
             Event::Keyboard(KeyEvent { code: Key::Tab, .. }) => return Some(AppMsg::GoNextItem),
             Event::Keyboard(KeyEvent { code: Key::Esc, .. }) => return Some(AppMsg::LoseFocus),
