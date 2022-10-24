@@ -34,7 +34,6 @@ impl Default for HelpWindow {
         for item in list.get(list.len() - 1).unwrap() {
             builder.add_col(TextSpan::new(item).italic());
         }
-        builder.add_row();
 
         Self {
             component: Table::default()

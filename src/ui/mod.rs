@@ -162,23 +162,6 @@ impl Model {
             tuirealm::SubClause::Always)
         ).is_ok());
 
-        /*assert!(app.subscribe(&Id::StatusBar, Sub::new(
-            SubEventClause::Keyboard(KeyEvent {
-                        code: Key::Char('h'),
-                        modifiers: KeyModifiers::CONTROL
-                    }
-            ),
-            tuirealm::SubClause::Always)
-        ).is_ok());
-        assert!(app.subscribe(&Id::StatusBar, Sub::new(
-            SubEventClause::Keyboard(KeyEvent {
-                        code: Key::Esc,
-                        modifiers: KeyModifiers::all()
-                    }
-            ),
-            tuirealm::SubClause::Always)
-        ).is_ok());*/
-
         assert!(app.subscribe(&Id::StatusBar, Sub::new(
             SubEventClause::Any,
             tuirealm::SubClause::Always)
