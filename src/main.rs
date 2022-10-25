@@ -1,11 +1,11 @@
-use core::playlist_manager::PlaylistManager;
+use core::{playlist_manager::PlaylistManager, queue::QueueManager};
 use tuirealm::{AttrValue, Attribute, PollStrategy, Update};
 use ui::Model;
 
 use crate::ui::Id;
 
-mod ui;
 mod config;
+mod ui;
 
 fn main() {
     let paths = match config::config_env() {
@@ -16,7 +16,7 @@ fn main() {
             std::process::exit(1);
         }
     };
-    //let config_dir = OsString::from("/home/leonardo/.phosphorus");
+
     let playlist_manager = match PlaylistManager::load(paths.data().clone().into_os_string()) {
         Ok(pm) => pm,
         Err(msg) => {
@@ -27,8 +27,10 @@ fn main() {
         }
     };
 
+    let queue_manager = QueueManager::default();
+
     // Setup model
-    let mut model = Model::new(playlist_manager);
+    let mut model = Model::new(playlist_manager, queue_manager);
     // Enter alternate screen
     let _ = model.terminal.enter_alternate_screen();
     let _ = model.terminal.enable_raw_mode();

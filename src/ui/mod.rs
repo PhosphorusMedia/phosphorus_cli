@@ -1,21 +1,22 @@
-use core::playlist_manager::PlaylistManager;
+use core::{playlist_manager::PlaylistManager, queue::QueueManager};
 use std::time::Duration;
 
 use tuirealm::{
+    event::{Key, KeyEvent, KeyModifiers},
     terminal::TerminalBridge,
     tui::layout::{Constraint, Direction, Layout},
-    Application, EventListenerCfg, NoUserEvent, Update, Sub, event::{KeyEvent, KeyModifiers, Key}, SubEventClause,
+    Application, EventListenerCfg, NoUserEvent, Sub, SubEventClause, Update,
 };
 
 use crate::ui::{app_window::AppWindow, search_bar::SearchBar, status_bar::StatusBar};
 
 mod app_window;
+mod secondary_window;
 mod playlist_list;
 mod queue;
 mod search_bar;
 mod status_bar;
 mod welcome_window;
-mod help_window;
 
 #[derive(Debug, Eq, PartialEq, Clone, Hash)]
 pub enum Id {
@@ -37,6 +38,7 @@ pub enum AppMsg {
     /// is equivalent to GoForward(1)
     GoForward(u16),
     ShowHelp,
+    ShowPlaylist,
     None,
 }
 
@@ -69,7 +71,7 @@ impl FocusableItem {
     pub fn below_item(&self) -> Option<Self> {
         match self {
             FocusableItem::SecondaryWindow => Some(FocusableItem::MainWindow),
-            _ => None
+            _ => None,
         }
     }
 }
@@ -90,9 +92,9 @@ pub struct Model {
 }
 
 impl Model {
-    pub fn new(playlist_manager: PlaylistManager) -> Self {
+    pub fn new(playlist_manager: PlaylistManager, queue_manager: QueueManager) -> Self {
         Self {
-            app: Self::init_app(playlist_manager),
+            app: Self::init_app(playlist_manager, queue_manager),
             quit: false,
             redraw: true,
             terminal: TerminalBridge::new().expect("Cannot initialize terminal"),
@@ -126,7 +128,10 @@ impl Model {
             .is_ok());
     }
 
-    pub fn init_app(playlist_manager: PlaylistManager) -> Application<Id, AppMsg, NoUserEvent> {
+    pub fn init_app(
+        playlist_manager: PlaylistManager,
+        queue_manager: QueueManager,
+    ) -> Application<Id, AppMsg, NoUserEvent> {
         // Setup application
         // NOTE: NoUserEvent is a shorthand to tell tui-realm we're not going to use any custom user event
         // NOTE: the event listener is configured to use the default crossterm input listener and to raise a Tick event each second
@@ -145,7 +150,7 @@ impl Model {
         assert!(app
             .mount(
                 Id::AppWindow,
-                Box::new(AppWindow::new(playlist_manager)),
+                Box::new(AppWindow::new(playlist_manager, queue_manager)),
                 Vec::default()
             )
             .is_ok());
@@ -153,19 +158,25 @@ impl Model {
             .mount(Id::StatusBar, StatusBar::new().boxed(), Vec::default())
             .is_ok());
 
-        assert!(app.subscribe(&Id::AppWindow, Sub::new(
-            SubEventClause::Keyboard(KeyEvent {
+        assert!(app
+            .subscribe(
+                &Id::AppWindow,
+                Sub::new(
+                    SubEventClause::Keyboard(KeyEvent {
                         code: Key::Char('h'),
                         modifiers: KeyModifiers::CONTROL
-                    }
-            ),
-            tuirealm::SubClause::Always)
-        ).is_ok());
+                    }),
+                    tuirealm::SubClause::Always
+                )
+            )
+            .is_ok());
 
-        assert!(app.subscribe(&Id::StatusBar, Sub::new(
-            SubEventClause::Any,
-            tuirealm::SubClause::Always)
-        ).is_ok());
+        assert!(app
+            .subscribe(
+                &Id::StatusBar,
+                Sub::new(SubEventClause::Any, tuirealm::SubClause::Always)
+            )
+            .is_ok());
 
         // Initializes focus
         assert!(app.active(&Id::SearchBar).is_ok());
@@ -192,7 +203,9 @@ impl Update<AppMsg> for Model {
                     } else {
                         esc_pressed = true;
                         self.esc_count += 1;
-                        if self.esc_count == 2 { return Some(AppMsg::Quit) };
+                        if self.esc_count == 2 {
+                            return Some(AppMsg::Quit);
+                        };
                     }
                 }
                 AppMsg::GoNextItem => {
@@ -218,8 +231,16 @@ impl Update<AppMsg> for Model {
                         n -= 1;
                     }
                     assert!(self.app.active(&self.active.to_id()).is_ok());
-                },
+                }
                 AppMsg::ShowHelp => {
+                    self.active = FocusableItem::SecondaryWindow;
+                    self.secondary_window_active = true;
+
+                    // Again, I don't know why this has to repeted
+                    assert!(self.app.active(&self.active.to_id()).is_ok());
+                    assert!(self.app.active(&self.active.to_id()).is_ok());
+                }
+                AppMsg::ShowPlaylist => {
                     self.active = FocusableItem::SecondaryWindow;
                     self.secondary_window_active = true;
 
@@ -229,7 +250,7 @@ impl Update<AppMsg> for Model {
                 }
                 AppMsg::None => {
                     esc_pressed = true;
-                },
+                }
             }
         }
 

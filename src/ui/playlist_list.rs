@@ -29,15 +29,18 @@ impl PlaylistList {
             builder.add_col(TextSpan::new(&list.get(&list.len() - 1).unwrap()).italic());
         }
 
-        let component = Table::default()
+        let mut component = Table::default()
             .highlighted_color(Color::LightYellow)
             .scroll(true)
-            .table(builder.build())
             .headers(&["Playlists"])
             .highlighted_str("➤ ")
             .row_height(1)
             .widths(&[100])
             .modifiers(TextModifiers::BOLD | TextModifiers::UNDERLINED);
+
+        if list.len() > 0 {
+            component = component.table(builder.build());
+        }
 
         Self { component }
     }

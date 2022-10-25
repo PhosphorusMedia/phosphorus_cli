@@ -1,10 +1,10 @@
 use tui_realm_stdlib::Table;
 use tuirealm::{
-    props::{Color, TextSpan, TextModifiers, TableBuilder},
+    props::{Color, TableBuilder, TextModifiers, TextSpan},
     Component, MockComponent, NoUserEvent,
 };
 
-use super::AppMsg;
+use crate::ui::AppMsg;
 
 #[derive(MockComponent)]
 pub struct HelpWindow {
@@ -22,7 +22,7 @@ impl Default for HelpWindow {
         let list = vec![
             ["ESC ESC", "Terminates the application"],
             ["Esc", "Closes any secondary window open"],
-            ["Ctrl + H", "Shows the help window"]
+            ["Ctrl + H", "Shows the help window"],
         ];
         let mut builder = TableBuilder::default();
         for row in &list.as_slice()[0..&list.len() - 1] {
@@ -44,7 +44,7 @@ impl Default for HelpWindow {
                 .highlighted_str("➤ ")
                 .row_height(1)
                 .widths(&[25, 75])
-                .modifiers(TextModifiers::BOLD | TextModifiers::UNDERLINED)
+                .modifiers(TextModifiers::BOLD | TextModifiers::UNDERLINED),
         }
     }
 }

@@ -1,50 +1,47 @@
-use core::song::SongDetails;
+use core::playlist_manager::Playlist;
 
 use tui_realm_stdlib::Table;
-use tuirealm::{
-    command::{Cmd, Direction, Position},
-    event::{Key, KeyEvent},
-    props::{Color, TableBuilder, TextModifiers, TextSpan},
-    Component, Event, MockComponent, NoUserEvent,
-};
+use tuirealm::{MockComponent, props::{TableBuilder, TextSpan, Color, TextModifiers}, Component, NoUserEvent, Event, event::{KeyEvent, Key}, command::{Cmd, Direction, Position}};
 
-use super::AppMsg;
+use crate::ui::AppMsg;
+
+const UNKNOWN_ARTIST: &'static str = "Unkwnown";
+const UNKNOWN_DURATION: &'static str = " - ";
 
 #[derive(MockComponent)]
-pub struct Queue {
-    component: Table,
+pub struct PlaylistWindow {
+    component: Table
 }
 
-impl Queue {
-    fn new(mut list: Option<Vec<&SongDetails>>) -> Self {
-        if list.is_none() {
-            list = Some(vec![]);
-        }
+impl PlaylistWindow {
+    pub fn new(playlist: &Playlist) -> Self {
+        let songs = playlist.songs();
 
-        let list = list.unwrap();
         let mut builder = TableBuilder::default();
-        if list.len() > 0 {
-            for item in &list.as_slice()[0..&list.len() - 1] {
-                builder.add_col(TextSpan::new(item.name()).italic());
-                builder
-                    .add_col(TextSpan::new(item.duration_str().unwrap_or(" - ".into())).italic());
-                builder.add_row();
+        if songs.len() > 0 {
+            for (index, item) in songs.iter().enumerate() {
+                let details = item.details();
+                builder.add_col(TextSpan::new(index.to_string()).italic());
+                builder.add_col(TextSpan::new(details.name()).italic());
+                builder.add_col(TextSpan::new(details.artist().unwrap_or(UNKNOWN_ARTIST)).italic());
+                builder.add_col(TextSpan::new(details.duration_str().unwrap_or(UNKNOWN_DURATION.into())).italic());
+                if index < songs.len() - 1 {
+                    builder.add_row();
+                }
             }
-            let item = list.get(list.len() - 1).unwrap();
-            builder.add_col(TextSpan::new(item.name()).italic());
-            builder.add_col(TextSpan::new(item.duration_str().unwrap_or(" - ".into())).italic());
         }
 
         let mut component = Table::default()
             .highlighted_color(Color::LightYellow)
             .scroll(true)
-            .headers(&["Reproduction queue"])
+            .title(playlist.name(), tuirealm::props::Alignment::Left)
+            .headers(&["#", "Name", "Artist", "Duration"])
             .highlighted_str("➤ ")
             .row_height(1)
-            .widths(&[70, 30])
+            .widths(&[5, 50, 35, 10])
             .modifiers(TextModifiers::BOLD | TextModifiers::UNDERLINED);
-        
-        if list.len() > 0 {
+
+        if songs.len() > 0 {
             component = component.table(builder.build());
         }
 
@@ -54,19 +51,9 @@ impl Queue {
     pub fn boxed(self) -> Box<Self> {
         Box::new(self)
     }
-
-    pub fn list(self, list: Vec<&SongDetails>) -> Self {
-        Self::new(Some(list))
-    }
 }
 
-impl Default for Queue {
-    fn default() -> Self {
-        Self::new(None)
-    }
-}
-
-impl Component<AppMsg, NoUserEvent> for Queue {
+impl Component<AppMsg, NoUserEvent> for PlaylistWindow {
     fn on(&mut self, ev: tuirealm::Event<NoUserEvent>) -> Option<AppMsg> {
         let cmd = match ev {
             Event::Keyboard(KeyEvent {

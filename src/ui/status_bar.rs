@@ -1,14 +1,15 @@
 use tui_realm_stdlib::{Container, Label};
 use tuirealm::{
+    event::{Key, KeyEvent, KeyModifiers},
     props::{Alignment, BorderSides, Borders, Color, Layout},
     tui::layout::{Constraint, Direction},
-    Component, MockComponent, NoUserEvent, event::{KeyEvent, Key, KeyModifiers}, AttrValue, Attribute, Event,
+    AttrValue, Attribute, Component, Event, MockComponent, NoUserEvent,
 };
 
 use super::AppMsg;
 
 const LEFT_LABEL: usize = 0;
-const RIGHT_LABEL: usize = 0;
+const RIGHT_LABEL: usize = 1;
 
 const STD_MSG: &'static str = "Press 2 times ESC to quit";
 const QUIT_MSG: &'static str = "Press ESC again to quit";
@@ -23,11 +24,7 @@ pub struct StatusBar {
 impl StatusBar {
     pub fn new() -> Self {
         let children: Vec<Box<dyn MockComponent>> = vec![
-            Box::new(
-                Label::default()
-                    .alignment(Alignment::Left)
-                    .text(STD_MSG),
-            ),
+            Box::new(Label::default().alignment(Alignment::Left).text(STD_MSG)),
             Box::new(Label::default().alignment(Alignment::Right).text("Welcome")),
         ];
 
@@ -48,7 +45,7 @@ impl StatusBar {
                             .as_ref(),
                         ),
                 ),
-            secondary_window_active: false
+            secondary_window_active: false,
         }
     }
 
@@ -64,16 +61,13 @@ impl Component<AppMsg, NoUserEvent> for StatusBar {
         match ev {
             Event::Keyboard(KeyEvent {
                 code: Key::Char('h'),
-                modifiers: KeyModifiers::CONTROL
+                modifiers: KeyModifiers::CONTROL,
             }) => {
                 let child: &mut Box<dyn MockComponent> = children.get_mut(LEFT_LABEL).unwrap();
                 child.attr(Attribute::Text, AttrValue::String(HELP_MSG.into()));
                 self.secondary_window_active = true;
-            },
-            Event::Keyboard(KeyEvent {
-                code: Key::Esc,
-                ..
-            }) => {
+            }
+            Event::Keyboard(KeyEvent { code: Key::Esc, .. }) => {
                 let child: &mut Box<dyn MockComponent> = children.get_mut(LEFT_LABEL).unwrap();
 
                 if self.secondary_window_active {
@@ -83,7 +77,7 @@ impl Component<AppMsg, NoUserEvent> for StatusBar {
                     child.attr(Attribute::Text, AttrValue::String(QUIT_MSG.into()));
                 }
             }
-            Event::Tick => {},
+            Event::Tick => {}
             _ => {
                 if !self.secondary_window_active {
                     let child: &mut Box<dyn MockComponent> = children.get_mut(LEFT_LABEL).unwrap();
