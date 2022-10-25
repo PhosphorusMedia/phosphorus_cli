@@ -81,7 +81,6 @@ impl Component<AppMsg, UserEvent> for SearchBar {
                 modifiers: KeyModifiers::NONE | KeyModifiers::SHIFT,
             }) => Cmd::Type(ch),
             Event::Keyboard(KeyEvent { code: Key::Tab, .. }) => return Some(AppMsg::GoNextItem),
-            Event::Keyboard(KeyEvent { code: Key::Esc, .. }) => return Some(AppMsg::LoseFocus),
             _ => Cmd::None,
         };
 

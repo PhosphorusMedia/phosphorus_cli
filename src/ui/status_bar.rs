@@ -1,9 +1,8 @@
 use tui_realm_stdlib::{Container, Label};
 use tuirealm::{
-    event::{Key, KeyEvent, KeyModifiers},
     props::{Alignment, BorderSides, Borders, Color, Layout},
     tui::layout::{Constraint, Direction},
-    AttrValue, Attribute, Component, Event, MockComponent,
+    AttrValue, Attribute, Component, Event, MockComponent, event::{KeyEvent, Key},
 };
 
 use super::{event::UserEvent, AppMsg};
@@ -11,14 +10,18 @@ use super::{event::UserEvent, AppMsg};
 const LEFT_LABEL: usize = 0;
 const RIGHT_LABEL: usize = 1;
 
+const MAX_ESC_TOLERANCE: u16 = 2;
+
 const STD_MSG: &'static str = "Press 2 times ESC to quit";
 const QUIT_MSG: &'static str = "Press ESC again to quit";
 const HELP_MSG: &'static str = "Press ESC to close help window";
+const PLAYLIST_MSG: &'static str = "Press ESC to close playlist window";
 
 #[derive(MockComponent)]
 pub struct StatusBar {
     component: Container,
-    secondary_window_active: bool,
+    is_secondary_window_active: bool,
+    esc_count: u16,
 }
 
 impl StatusBar {
@@ -45,7 +48,8 @@ impl StatusBar {
                             .as_ref(),
                         ),
                 ),
-            secondary_window_active: false,
+            is_secondary_window_active: false,
+            esc_count: 0
         }
     }
 
@@ -58,31 +62,49 @@ impl Component<AppMsg, UserEvent> for StatusBar {
     fn on(&mut self, ev: tuirealm::Event<UserEvent>) -> Option<AppMsg> {
         let children: &mut Vec<Box<dyn MockComponent>> = self.component.children.as_mut();
 
-        match ev {
+        let event = match ev {
+            Event::User(event) => event,
+            Event::Tick => return Some(AppMsg::None),
             Event::Keyboard(KeyEvent {
-                code: Key::Char('h'),
-                modifiers: KeyModifiers::CONTROL,
+                code: Key::Esc,
+                ..
             }) => {
                 let child: &mut Box<dyn MockComponent> = children.get_mut(LEFT_LABEL).unwrap();
-                child.attr(Attribute::Text, AttrValue::String(HELP_MSG.into()));
-                self.secondary_window_active = true;
-            }
-            Event::Keyboard(KeyEvent { code: Key::Esc, .. }) => {
-                let child: &mut Box<dyn MockComponent> = children.get_mut(LEFT_LABEL).unwrap();
 
-                if self.secondary_window_active {
-                    self.secondary_window_active = false;
+                if self.is_secondary_window_active {
+                    self.is_secondary_window_active = false;
                     child.attr(Attribute::Text, AttrValue::String(STD_MSG.into()));
-                } else {
-                    child.attr(Attribute::Text, AttrValue::String(QUIT_MSG.into()));
+                    return Some(AppMsg::LoseFocus);
+                } 
+                
+                self.esc_count += 1;
+                if self.esc_count == MAX_ESC_TOLERANCE {
+                    return Some(AppMsg::Quit);
                 }
+                    
+                child.attr(Attribute::Text, AttrValue::String(QUIT_MSG.into()));
+                return Some(AppMsg::None);
             }
-            Event::Tick => {}
             _ => {
-                if !self.secondary_window_active {
+                if !self.is_secondary_window_active {
                     let child: &mut Box<dyn MockComponent> = children.get_mut(LEFT_LABEL).unwrap();
                     child.attr(Attribute::Text, AttrValue::String(STD_MSG.into()));
                 }
+                self.esc_count = 0;
+                return Some(AppMsg::None)
+            }
+        };
+
+        match event {
+            UserEvent::HelpOpened => {
+                let child: &mut Box<dyn MockComponent> = children.get_mut(LEFT_LABEL).unwrap();
+                child.attr(Attribute::Text, AttrValue::String(HELP_MSG.into()));
+                self.is_secondary_window_active = true;
+            }
+            UserEvent::PlaylistViewOpened => {
+                let child: &mut Box<dyn MockComponent> = children.get_mut(LEFT_LABEL).unwrap();
+                child.attr(Attribute::Text, AttrValue::String(PLAYLIST_MSG.into()));
+                self.is_secondary_window_active = true;
             }
         }
         Some(AppMsg::None)

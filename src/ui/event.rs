@@ -4,7 +4,9 @@ use tuirealm::{listener::Poll, Event};
 
 #[derive(PartialEq, Clone, PartialOrd)]
 pub enum UserEvent {
+    /// The help window has been opened
     HelpOpened,
+    /// A playlist view has been opened
     PlaylistViewOpened,
 }
 
@@ -14,6 +16,7 @@ pub struct UserEventPort {
     rx: Receiver<UserEvent>,
 }
 
+/// Receives events from a `mpsc` channel and triggers them
 impl UserEventPort {
     pub fn new(rx: Receiver<UserEvent>) -> Self {
         Self { rx }
@@ -26,7 +29,7 @@ impl UserEventPort {
 
 impl Poll<UserEvent> for UserEventPort {
     fn poll(&mut self) -> tuirealm::listener::ListenerResult<Option<tuirealm::Event<UserEvent>>> {
-        let event = self.rx.recv();
+        let event = self.rx.try_recv();
         if event.is_err() {
             return Ok(None);
         }

@@ -4,7 +4,7 @@ use tui_realm_stdlib::Container;
 use tuirealm::{
     command::{Cmd, Direction as CDir, Position},
     event::{Key, KeyEvent, KeyModifiers},
-    props::{BorderSides, Borders, Layout, Style},
+    props::{BorderSides, Borders, Layout},
     tui::layout::{Constraint, Direction},
     AttrValue, Attribute, Component, Event, MockComponent, State, StateValue,
 };
@@ -117,18 +117,16 @@ impl AppWindow {
 impl Component<AppMsg, UserEvent> for AppWindow {
     fn on(&mut self, ev: tuirealm::Event<UserEvent>) -> Option<AppMsg> {
         match ev {
-            Event::FocusGained => {
-                for child in self.component.children.as_mut_slice() {
-                    child.attr(Attribute::Focus, AttrValue::Flag(false));
-                    child.attr(Attribute::FocusStyle, AttrValue::Style(Style::default()));
-                }
-            }
             Event::Keyboard(KeyEvent {
                 code: Key::Char('h'),
                 modifiers: KeyModifiers::CONTROL,
             }) => {
                 if self.main_window_type != MainWindowType::Help {
-                    self.previous_window = Some(self.main_window_type);
+                    if self.main_window_type.is_secondary() {
+                        self.previous_window = Some(MainWindowType::Welcome);
+                    } else {
+                        self.previous_window = Some(self.main_window_type);
+                    }
                     self.main_window_type = MainWindowType::Help;
                     self.component.children.remove(MAIN_WINDOW);
                     self.component
@@ -151,13 +149,10 @@ impl Component<AppMsg, UserEvent> for AppWindow {
                 if self.main_window_type.is_secondary() {
                     self.main_window_type = self.previous_window.unwrap_or(MainWindowType::Welcome);
                     self.previous_window = None;
-                    self.component.children.remove(MAIN_WINDOW);
-                    self.component
-                        .children
-                        .insert(MAIN_WINDOW, self.main_window_type.default().unwrap());
-                    return Some(AppMsg::None);
+                    children.remove(MAIN_WINDOW);
+                    children.insert(MAIN_WINDOW, self.main_window_type.default().unwrap());
                 }
-                return Some(AppMsg::LoseFocus);
+                return Some(AppMsg::None);
             }
             Event::Keyboard(KeyEvent { code: Key::Tab, .. }) => {
                 // Removes focus from current active component
@@ -201,12 +196,14 @@ impl Component<AppMsg, UserEvent> for AppWindow {
                 if let Some(PLAYLIST_LIST) = self.active {
                     if let State::One(StateValue::Usize(index)) = child.state() {
                         let playlist = self.playlist_manager.playlists().get(index).unwrap();
-                        self.previous_window = Some(self.main_window_type);
+                        if self.main_window_type.is_secondary() {
+                            self.previous_window = Some(MainWindowType::Welcome);
+                        } else {
+                            self.previous_window = Some(self.main_window_type);
+                        }
                         self.main_window_type = MainWindowType::PlaylistSongs;
-                        self.component.children.remove(MAIN_WINDOW);
-                        self.component
-                            .children
-                            .insert(MAIN_WINDOW, PlaylistWindow::new(playlist).boxed());
+                        children.remove(MAIN_WINDOW);
+                        children.insert(MAIN_WINDOW, PlaylistWindow::new(playlist).boxed());
                         self.active = Some(MAIN_WINDOW);
                         return Some(AppMsg::ShowPlaylist);
                     }
@@ -243,7 +240,6 @@ fn table_events(
             code: Key::Home, ..
         }) => Cmd::GoTo(Position::Begin),
         Event::Keyboard(KeyEvent { code: Key::End, .. }) => Cmd::GoTo(Position::End),
-        Event::Keyboard(KeyEvent { code: Key::Esc, .. }) => return Some(AppMsg::LoseFocus),
         _ => Cmd::None,
     };
 

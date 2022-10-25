@@ -63,7 +63,6 @@ impl Component<AppMsg, UserEvent> for SearchBarRaw {
                 ..
             }) => self.perform(Cmd::Type(ch)),
             Event::Keyboard(KeyEvent { code: Key::Tab, .. }) => return Some(AppMsg::GoNextItem),
-            Event::Keyboard(KeyEvent { code: Key::Esc, .. }) => return Some(AppMsg::LoseFocus),
             _ => CmdResult::None,
         };
         Some(AppMsg::None)

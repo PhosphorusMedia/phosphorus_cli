@@ -85,7 +85,6 @@ impl Component<AppMsg, UserEvent> for Queue {
             }) => Cmd::GoTo(Position::Begin),
             Event::Keyboard(KeyEvent { code: Key::End, .. }) => Cmd::GoTo(Position::End),
             Event::Keyboard(KeyEvent { code: Key::Tab, .. }) => return Some(AppMsg::GoNextItem),
-            Event::Keyboard(KeyEvent { code: Key::Esc, .. }) => return Some(AppMsg::LoseFocus),
             _ => Cmd::None,
         };
 

@@ -95,8 +95,7 @@ pub struct Model {
     pub terminal: TerminalBridge,
     // Used to track the active component
     active: FocusableItem,
-    secondary_window_active: bool,
-    esc_count: u8,
+    is_secondary_window_active: bool,
     tx: Sender<UserEvent>,
 }
 
@@ -110,8 +109,7 @@ impl Model {
             redraw: true,
             terminal: TerminalBridge::new().expect("Cannot initialize terminal"),
             active: FocusableItem::SearchBar,
-            secondary_window_active: false,
-            esc_count: 0,
+            is_secondary_window_active: false,
             tx,
         }
     }
@@ -152,9 +150,9 @@ impl Model {
         let mut app: Application<Id, AppMsg, UserEvent> = Application::init(
             EventListenerCfg::default()
                 .default_input_listener(Duration::from_millis(20))
+                .port(UserEventPort::new(rx).boxed(), Duration::from_millis(100))
                 .poll_timeout(Duration::from_millis(10))
-                .tick_interval(Duration::from_millis(65))
-                .port(UserEventPort::new(rx).boxed(), Duration::from_millis(100)),
+                .tick_interval(Duration::from_millis(65)),
         );
 
         // Mounts the components
@@ -214,25 +212,15 @@ impl Model {
 
 impl Update<AppMsg> for Model {
     fn update(&mut self, msg: Option<AppMsg>) -> Option<AppMsg> {
-        let mut esc_pressed = false;
-
         if let Some(msg) = msg {
             self.redraw = true;
             match msg {
                 AppMsg::Quit => self.quit = true,
-                AppMsg::LoseFocus => {
-                    if self.secondary_window_active {
-                        self.secondary_window_active = false;
-                        if let Some(item) = self.active.below_item() {
-                            self.active = item;
-                            assert!(self.app.active(&self.active.to_id()).is_ok());
-                        }
-                    } else {
-                        esc_pressed = true;
-                        self.esc_count += 1;
-                        if self.esc_count == 2 {
-                            return Some(AppMsg::Quit);
-                        };
+                AppMsg::LoseFocus => if self.is_secondary_window_active {
+                    self.is_secondary_window_active = false;
+                    if let Some(item) = self.active.below_item() {
+                        self.active = item;
+                        assert!(self.app.active(&self.active.to_id()).is_ok());
                     }
                 }
                 AppMsg::GoNextItem => {
@@ -244,7 +232,7 @@ impl Update<AppMsg> for Model {
                       DO NOT REMOVE
                     */
                     if let FocusableItem::MainWindow = self.active {
-                        if self.secondary_window_active {
+                        if self.is_secondary_window_active {
                             self.active = FocusableItem::SecondaryWindow;
                         }
                     } else if let FocusableItem::PlaylistList = self.active {
@@ -260,29 +248,25 @@ impl Update<AppMsg> for Model {
                     assert!(self.app.active(&self.active.to_id()).is_ok());
                 }
                 AppMsg::ShowHelp => {
+                    let _ = self.tx.send(UserEvent::HelpOpened);
                     self.active = FocusableItem::SecondaryWindow;
-                    self.secondary_window_active = true;
+                    self.is_secondary_window_active = true;
 
                     // Again, I don't know why this has to repeted
                     assert!(self.app.active(&self.active.to_id()).is_ok());
                     assert!(self.app.active(&self.active.to_id()).is_ok());
                 }
                 AppMsg::ShowPlaylist => {
+                    let _ = self.tx.send(UserEvent::PlaylistViewOpened);
                     self.active = FocusableItem::SecondaryWindow;
-                    self.secondary_window_active = true;
+                    self.is_secondary_window_active = true;
 
                     // Again, I don't know why this has to repeted
                     assert!(self.app.active(&self.active.to_id()).is_ok());
                     assert!(self.app.active(&self.active.to_id()).is_ok());
                 }
-                AppMsg::None => {
-                    esc_pressed = true;
-                }
+                _ => ()
             }
-        }
-
-        if !esc_pressed {
-            self.esc_count = 0;
         }
 
         None
