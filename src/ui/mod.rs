@@ -1,5 +1,5 @@
 use core::{playlist_manager::PlaylistManager, queue::QueueManager};
-use std::time::Duration;
+use std::{time::Duration, sync::mpsc::{Sender, Receiver}};
 
 use tuirealm::{
     event::{Key, KeyEvent, KeyModifiers},
@@ -8,7 +8,9 @@ use tuirealm::{
     Application, EventListenerCfg, NoUserEvent, Sub, SubEventClause, Update,
 };
 
-use crate::ui::{app_window::AppWindow, search_bar::SearchBar, status_bar::StatusBar};
+use crate::ui::{app_window::AppWindow, search_bar::SearchBar, status_bar::StatusBar, event::UserEventPort};
+
+use self::event::UserEvent;
 
 mod app_window;
 mod secondary_window;
@@ -17,6 +19,7 @@ mod queue;
 mod search_bar;
 mod status_bar;
 mod welcome_window;
+mod event;
 
 #[derive(Debug, Eq, PartialEq, Clone, Hash)]
 pub enum Id {
@@ -78,7 +81,7 @@ impl FocusableItem {
 
 pub struct Model {
     /// Application
-    pub app: Application<Id, AppMsg, NoUserEvent>,
+    pub app: Application<Id, AppMsg, UserEvent>,
     /// Indicates that the application must quit
     pub quit: bool,
     /// Tells whether to redraw interface
@@ -89,18 +92,22 @@ pub struct Model {
     active: FocusableItem,
     secondary_window_active: bool,
     esc_count: u8,
+    tx: Sender<UserEvent>
 }
 
 impl Model {
     pub fn new(playlist_manager: PlaylistManager, queue_manager: QueueManager) -> Self {
+        let (tx, rx) = std::sync::mpsc::channel();
+
         Self {
-            app: Self::init_app(playlist_manager, queue_manager),
+            app: Self::init_app(playlist_manager, queue_manager, rx),
             quit: false,
             redraw: true,
             terminal: TerminalBridge::new().expect("Cannot initialize terminal"),
             active: FocusableItem::SearchBar,
             secondary_window_active: false,
             esc_count: 0,
+            tx
         }
     }
 
@@ -131,16 +138,18 @@ impl Model {
     pub fn init_app(
         playlist_manager: PlaylistManager,
         queue_manager: QueueManager,
-    ) -> Application<Id, AppMsg, NoUserEvent> {
+        rx: Receiver<UserEvent>
+    ) -> Application<Id, AppMsg, UserEvent> {
         // Setup application
         // NOTE: NoUserEvent is a shorthand to tell tui-realm we're not going to use any custom user event
         // NOTE: the event listener is configured to use the default crossterm input listener and to raise a Tick event each second
         // which we will use to update the clock
-        let mut app: Application<Id, AppMsg, NoUserEvent> = Application::init(
+        let mut app: Application<Id, AppMsg, UserEvent> = Application::init(
             EventListenerCfg::default()
                 .default_input_listener(Duration::from_millis(20))
                 .poll_timeout(Duration::from_millis(10))
-                .tick_interval(Duration::from_millis(65)),
+                .tick_interval(Duration::from_millis(65))
+                .port(UserEventPort::new(rx).boxed(), Duration::from_millis(100)),
         );
 
         // Mounts the components
@@ -165,6 +174,19 @@ impl Model {
                     SubEventClause::Keyboard(KeyEvent {
                         code: Key::Char('h'),
                         modifiers: KeyModifiers::CONTROL
+                    }),
+                    tuirealm::SubClause::Always
+                )
+            )
+            .is_ok());
+
+        assert!(app
+            .subscribe(
+                &Id::AppWindow,
+                Sub::new(
+                    SubEventClause::Keyboard(KeyEvent {
+                        code: Key::Esc,
+                        modifiers: KeyModifiers::NONE
                     }),
                     tuirealm::SubClause::Always
                 )

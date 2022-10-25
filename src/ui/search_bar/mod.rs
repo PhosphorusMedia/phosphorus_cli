@@ -11,7 +11,7 @@ mod search_bar_raw;
 
 use self::search_bar_raw::SearchBarRaw;
 
-use super::AppMsg;
+use super::{AppMsg, event::UserEvent};
 
 #[derive(MockComponent)]
 pub struct SearchBar {
@@ -53,8 +53,8 @@ impl Default for SearchBar {
     }
 }
 
-impl Component<AppMsg, NoUserEvent> for SearchBar {
-    fn on(&mut self, ev: tuirealm::Event<NoUserEvent>) -> Option<AppMsg> {
+impl Component<AppMsg, UserEvent> for SearchBar {
+    fn on(&mut self, ev: tuirealm::Event<UserEvent>) -> Option<AppMsg> {
         let children: &mut Vec<Box<dyn MockComponent>> = self.component.children.as_mut();
         let child: &mut Box<dyn MockComponent> = children.get_mut(1).unwrap();
 

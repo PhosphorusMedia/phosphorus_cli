@@ -11,7 +11,7 @@ use tuirealm::{
 
 use super::{
     secondary_window::{HelpWindow, PlaylistWindow}, playlist_list::PlaylistList, queue::Queue,
-    welcome_window::WelcomWindow, AppMsg,
+    welcome_window::WelcomWindow, AppMsg, event::UserEvent,
 };
 
 
@@ -28,6 +28,14 @@ pub enum MainWindowType {
 
 impl MainWindowType {
     pub fn need_focus(&self) -> bool {
+        match self {
+            MainWindowType::Welcome => false,
+            MainWindowType::Help => true,
+            MainWindowType::PlaylistSongs => true,
+        }
+    }
+
+    pub fn is_secondary(&self) -> bool {
         match self {
             MainWindowType::Welcome => false,
             MainWindowType::Help => true,
@@ -103,8 +111,8 @@ impl AppWindow {
     }
 }
 
-impl Component<AppMsg, NoUserEvent> for AppWindow {
-    fn on(&mut self, ev: tuirealm::Event<NoUserEvent>) -> Option<AppMsg> {
+impl Component<AppMsg, UserEvent> for AppWindow {
+    fn on(&mut self, ev: tuirealm::Event<UserEvent>) -> Option<AppMsg> {
         match ev {
             Event::FocusGained => {
                 for child in self.component.children.as_mut_slice() {
@@ -137,13 +145,14 @@ impl Component<AppMsg, NoUserEvent> for AppWindow {
 
         let _ = match ev {
             Event::Keyboard(KeyEvent { code: Key::Esc, .. }) => {
-                if self.main_window_type == MainWindowType::Help || self.main_window_type == MainWindowType::PlaylistSongs {
+                if self.main_window_type.is_secondary() {
                     self.main_window_type = self.previous_window.unwrap_or(MainWindowType::Welcome);
                     self.previous_window = None;
                     self.component.children.remove(MAIN_WINDOW);
                     self.component
                         .children
                         .insert(MAIN_WINDOW, self.main_window_type.default().unwrap());
+                    return Some(AppMsg::None);
                 }
                 return Some(AppMsg::LoseFocus);
             }
@@ -212,7 +221,7 @@ impl Component<AppMsg, NoUserEvent> for AppWindow {
     }
 }
 
-fn table_events(ev: &tuirealm::Event<NoUserEvent>, child: &mut Box<dyn MockComponent>) -> Option<AppMsg> {
+fn table_events(ev: &tuirealm::Event<UserEvent>, child: &mut Box<dyn MockComponent>) -> Option<AppMsg> {
     let cmd = match ev {
         Event::Keyboard(KeyEvent {
             code: Key::Down, ..

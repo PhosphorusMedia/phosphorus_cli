@@ -3,7 +3,7 @@ use core::playlist_manager::Playlist;
 use tui_realm_stdlib::Table;
 use tuirealm::{MockComponent, props::{TableBuilder, TextSpan, Color, TextModifiers}, Component, NoUserEvent, Event, event::{KeyEvent, Key}, command::{Cmd, Direction, Position}};
 
-use crate::ui::AppMsg;
+use crate::ui::{AppMsg, event::UserEvent};
 
 const UNKNOWN_ARTIST: &'static str = "Unkwnown";
 const UNKNOWN_DURATION: &'static str = " - ";
@@ -53,8 +53,8 @@ impl PlaylistWindow {
     }
 }
 
-impl Component<AppMsg, NoUserEvent> for PlaylistWindow {
-    fn on(&mut self, ev: tuirealm::Event<NoUserEvent>) -> Option<AppMsg> {
+impl Component<AppMsg, UserEvent> for PlaylistWindow {
+    fn on(&mut self, ev: tuirealm::Event<UserEvent>) -> Option<AppMsg> {
         let cmd = match ev {
             Event::Keyboard(KeyEvent {
                 code: Key::Down, ..

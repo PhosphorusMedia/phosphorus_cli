@@ -6,7 +6,7 @@ use tuirealm::{
     AttrValue, Attribute, Component, Event, MockComponent, NoUserEvent,
 };
 
-use super::AppMsg;
+use super::{AppMsg, event::UserEvent};
 
 const LEFT_LABEL: usize = 0;
 const RIGHT_LABEL: usize = 1;
@@ -54,8 +54,8 @@ impl StatusBar {
     }
 }
 
-impl Component<AppMsg, NoUserEvent> for StatusBar {
-    fn on(&mut self, ev: tuirealm::Event<NoUserEvent>) -> Option<AppMsg> {
+impl Component<AppMsg, UserEvent> for StatusBar {
+    fn on(&mut self, ev: tuirealm::Event<UserEvent>) -> Option<AppMsg> {
         let children: &mut Vec<Box<dyn MockComponent>> = self.component.children.as_mut();
 
         match ev {

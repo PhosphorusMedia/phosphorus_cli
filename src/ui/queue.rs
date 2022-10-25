@@ -8,7 +8,7 @@ use tuirealm::{
     Component, Event, MockComponent, NoUserEvent,
 };
 
-use super::AppMsg;
+use super::{AppMsg, event::UserEvent};
 
 #[derive(MockComponent)]
 pub struct Queue {
@@ -66,8 +66,8 @@ impl Default for Queue {
     }
 }
 
-impl Component<AppMsg, NoUserEvent> for Queue {
-    fn on(&mut self, ev: tuirealm::Event<NoUserEvent>) -> Option<AppMsg> {
+impl Component<AppMsg, UserEvent> for Queue {
+    fn on(&mut self, ev: tuirealm::Event<UserEvent>) -> Option<AppMsg> {
         let cmd = match ev {
             Event::Keyboard(KeyEvent {
                 code: Key::Down, ..

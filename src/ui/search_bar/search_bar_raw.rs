@@ -6,6 +6,8 @@ use tuirealm::{
     AttrValue, Component, Event, MockComponent, NoUserEvent,
 };
 
+use crate::ui::event::UserEvent;
+
 use super::AppMsg;
 
 #[derive(MockComponent)]
@@ -34,8 +36,8 @@ impl SearchBarRaw {
     }
 }
 
-impl Component<AppMsg, NoUserEvent> for SearchBarRaw {
-    fn on(&mut self, ev: tuirealm::Event<NoUserEvent>) -> Option<AppMsg> {
+impl Component<AppMsg, UserEvent> for SearchBarRaw {
+    fn on(&mut self, ev: tuirealm::Event<UserEvent>) -> Option<AppMsg> {
         let _ = match ev {
             Event::Keyboard(KeyEvent {
                 code: Key::Left, ..
