@@ -66,7 +66,7 @@ impl MainWindowType {
 #[derive(MockComponent)]
 pub struct AppWindow {
     component: Container,
-    active: Option<usize>,
+    active: usize,
     main_window_type: MainWindowType,
     previous_window: Option<MainWindowType>,
     playlist_manager: PlaylistManager,
@@ -105,7 +105,7 @@ impl AppWindow {
                             .as_ref(),
                         ),
                 ),
-            active: Some(PLAYLIST_LIST),
+            active: PLAYLIST_LIST,
             main_window_type: MainWindowType::Welcome,
             previous_window: None,
             playlist_manager,
@@ -132,27 +132,29 @@ impl Component<AppMsg, UserEvent> for AppWindow {
                     self.component
                         .children
                         .insert(MAIN_WINDOW, self.main_window_type.default().unwrap());
-                    self.active = Some(MAIN_WINDOW);
+                    self.active = MAIN_WINDOW;
                     return Some(AppMsg::ShowHelp);
                 }
             }
             _ => (),
         };
 
-        let index = self.active.unwrap();
+        let index = self.active;
         let children: &mut Vec<Box<dyn MockComponent>> = self.component.children.as_mut();
         let mut child: &mut Box<dyn MockComponent> = children.get_mut(index).unwrap();
         child.attr(Attribute::Focus, AttrValue::Flag(true));
 
         let _ = match ev {
-            Event::Keyboard(KeyEvent { code: Key::Esc, .. }) => {
+            Event::User(UserEvent::SecondaryWindowClosed) => {
                 if self.main_window_type.is_secondary() {
                     self.main_window_type = self.previous_window.unwrap_or(MainWindowType::Welcome);
                     self.previous_window = None;
+                    self.active = PLAYLIST_LIST;
+                    child.attr(Attribute::Focus, AttrValue::Flag(false));
                     children.remove(MAIN_WINDOW);
                     children.insert(MAIN_WINDOW, self.main_window_type.default().unwrap());
                 }
-                return Some(AppMsg::None);
+                return Some(AppMsg::ResetFocus);
             }
             Event::Keyboard(KeyEvent { code: Key::Tab, .. }) => {
                 // Removes focus from current active component
@@ -179,21 +181,21 @@ impl Component<AppMsg, UserEvent> for AppWindow {
                     }
                 }
                 if index + step <= 2 {
-                    self.active = Some(index + step);
+                    self.active = index + step;
                     //msg = AppMsg::GoForward(step as u16);
-                    child = children.get_mut(self.active.unwrap()).unwrap();
+                    child = children.get_mut(self.active).unwrap();
                     child.attr(Attribute::Focus, AttrValue::Flag(true));
                 } else {
                     child = children.get_mut(PLAYLIST_LIST).unwrap();
                     child.attr(Attribute::Focus, AttrValue::Flag(true));
-                    self.active = Some(PLAYLIST_LIST);
+                    self.active = PLAYLIST_LIST;
                 }
                 return Some(AppMsg::GoForward(step as u16));
             }
             Event::Keyboard(KeyEvent {
                 code: Key::Enter, ..
             }) => {
-                if let Some(PLAYLIST_LIST) = self.active {
+                if PLAYLIST_LIST == self.active {
                     if let State::One(StateValue::Usize(index)) = child.state() {
                         let playlist = self.playlist_manager.playlists().get(index).unwrap();
                         if self.main_window_type.is_secondary() {
@@ -204,7 +206,7 @@ impl Component<AppMsg, UserEvent> for AppWindow {
                         self.main_window_type = MainWindowType::PlaylistSongs;
                         children.remove(MAIN_WINDOW);
                         children.insert(MAIN_WINDOW, PlaylistWindow::new(playlist).boxed());
-                        self.active = Some(MAIN_WINDOW);
+                        self.active = MAIN_WINDOW;
                         return Some(AppMsg::ShowPlaylist);
                     }
                 }

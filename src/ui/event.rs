@@ -2,12 +2,13 @@ use std::sync::mpsc::Receiver;
 
 use tuirealm::{listener::Poll, Event};
 
-#[derive(PartialEq, Clone, PartialOrd)]
+#[derive(PartialEq, Clone, PartialOrd, Debug)]
 pub enum UserEvent {
     /// The help window has been opened
     HelpOpened,
     /// A playlist view has been opened
     PlaylistViewOpened,
+    SecondaryWindowClosed,
 }
 
 impl Eq for UserEvent {}

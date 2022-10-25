@@ -40,6 +40,8 @@ pub enum AppMsg {
     Quit,
     /// The current active componen looses its focus
     LoseFocus,
+    /// Can be used when a secondary window is closed
+    ResetFocus,
     /// The focus is passed to the next component
     GoNextItem,
     /// Is like calling GoNext n time, so GoNextItem
@@ -187,10 +189,7 @@ impl Model {
             .subscribe(
                 &Id::AppWindow,
                 Sub::new(
-                    SubEventClause::Keyboard(KeyEvent {
-                        code: Key::Esc,
-                        modifiers: KeyModifiers::NONE
-                    }),
+                    SubEventClause::User(UserEvent::SecondaryWindowClosed),
                     tuirealm::SubClause::Always
                 )
             )
@@ -216,12 +215,19 @@ impl Update<AppMsg> for Model {
             self.redraw = true;
             match msg {
                 AppMsg::Quit => self.quit = true,
-                AppMsg::LoseFocus => if self.is_secondary_window_active {
-                    self.is_secondary_window_active = false;
-                    if let Some(item) = self.active.below_item() {
-                        self.active = item;
-                        assert!(self.app.active(&self.active.to_id()).is_ok());
+                AppMsg::LoseFocus => {
+                    if self.is_secondary_window_active {
+                        self.is_secondary_window_active = false;
+                        let _ = self.tx.send(UserEvent::SecondaryWindowClosed);
+                        if let Some(item) = self.active.below_item() {
+                            self.active = item;
+                            assert!(self.app.active(&self.active.to_id()).is_ok());
+                        }
                     }
+                }
+                AppMsg::ResetFocus => {
+                    self.active = FocusableItem::SearchBar;
+                    assert!(self.app.active(&self.active.to_id()).is_ok());
                 }
                 AppMsg::GoNextItem => {
                     self.active = self.active.next();
@@ -265,7 +271,7 @@ impl Update<AppMsg> for Model {
                     assert!(self.app.active(&self.active.to_id()).is_ok());
                     assert!(self.app.active(&self.active.to_id()).is_ok());
                 }
-                _ => ()
+                _ => (),
             }
         }
 

@@ -1,8 +1,9 @@
 use tui_realm_stdlib::{Container, Label};
 use tuirealm::{
+    event::{Key, KeyEvent},
     props::{Alignment, BorderSides, Borders, Color, Layout},
     tui::layout::{Constraint, Direction},
-    AttrValue, Attribute, Component, Event, MockComponent, event::{KeyEvent, Key},
+    AttrValue, Attribute, Component, Event, MockComponent,
 };
 
 use super::{event::UserEvent, AppMsg};
@@ -49,7 +50,7 @@ impl StatusBar {
                         ),
                 ),
             is_secondary_window_active: false,
-            esc_count: 0
+            esc_count: 0,
         }
     }
 
@@ -65,23 +66,20 @@ impl Component<AppMsg, UserEvent> for StatusBar {
         let event = match ev {
             Event::User(event) => event,
             Event::Tick => return Some(AppMsg::None),
-            Event::Keyboard(KeyEvent {
-                code: Key::Esc,
-                ..
-            }) => {
+            Event::Keyboard(KeyEvent { code: Key::Esc, .. }) => {
                 let child: &mut Box<dyn MockComponent> = children.get_mut(LEFT_LABEL).unwrap();
 
                 if self.is_secondary_window_active {
                     self.is_secondary_window_active = false;
                     child.attr(Attribute::Text, AttrValue::String(STD_MSG.into()));
                     return Some(AppMsg::LoseFocus);
-                } 
-                
+                }
+
                 self.esc_count += 1;
                 if self.esc_count == MAX_ESC_TOLERANCE {
                     return Some(AppMsg::Quit);
                 }
-                    
+
                 child.attr(Attribute::Text, AttrValue::String(QUIT_MSG.into()));
                 return Some(AppMsg::None);
             }
@@ -91,7 +89,7 @@ impl Component<AppMsg, UserEvent> for StatusBar {
                     child.attr(Attribute::Text, AttrValue::String(STD_MSG.into()));
                 }
                 self.esc_count = 0;
-                return Some(AppMsg::None)
+                return Some(AppMsg::None);
             }
         };
 
@@ -106,6 +104,7 @@ impl Component<AppMsg, UserEvent> for StatusBar {
                 child.attr(Attribute::Text, AttrValue::String(PLAYLIST_MSG.into()));
                 self.is_secondary_window_active = true;
             }
+            _ => (),
         }
         Some(AppMsg::None)
     }

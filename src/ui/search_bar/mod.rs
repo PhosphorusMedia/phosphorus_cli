@@ -2,7 +2,7 @@ use tui_realm_stdlib::{Container, Phantom};
 use tuirealm::{
     command::{Cmd, Position},
     event::{Key, KeyEvent, KeyModifiers},
-    props::{self, Borders, Color, Layout},
+    props::{BorderSides, Borders, Color, Layout},
     tui::layout::{Constraint, Direction},
     Component, Event, MockComponent,
 };
@@ -34,7 +34,7 @@ impl Default for SearchBar {
 
         Self {
             component: Container::default()
-                .borders(Borders::default().sides(props::BorderSides::empty()))
+                .borders(Borders::default().sides(BorderSides::empty()))
                 .foreground(Color::Reset)
                 .children(children)
                 .layout(
