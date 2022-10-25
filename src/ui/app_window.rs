@@ -6,14 +6,17 @@ use tuirealm::{
     event::{Key, KeyEvent, KeyModifiers},
     props::{BorderSides, Borders, Layout, Style},
     tui::layout::{Constraint, Direction},
-    AttrValue, Attribute, Component, Event, MockComponent, NoUserEvent, State, StateValue,
+    AttrValue, Attribute, Component, Event, MockComponent, State, StateValue,
 };
 
 use super::{
-    secondary_window::{HelpWindow, PlaylistWindow}, playlist_list::PlaylistList, queue::Queue,
-    welcome_window::WelcomWindow, AppMsg, event::UserEvent,
+    event::UserEvent,
+    playlist_list::PlaylistList,
+    queue::Queue,
+    secondary_window::{HelpWindow, PlaylistWindow},
+    welcome_window::WelcomWindow,
+    AppMsg,
 };
-
 
 const PLAYLIST_LIST: usize = 0;
 const MAIN_WINDOW: usize = 1;
@@ -47,7 +50,7 @@ impl MainWindowType {
         match self {
             MainWindowType::Welcome => Some(WelcomWindow::default().boxed()),
             MainWindowType::Help => Some(HelpWindow::default().boxed()),
-            _ => None
+            _ => None,
         }
     }
 
@@ -161,7 +164,7 @@ impl Component<AppMsg, UserEvent> for AppWindow {
                 child.attr(Attribute::Focus, AttrValue::Flag(false));
                 let mut step = 1;
                 let mut found_focusable = false;
-                while index + step <= 2  && !found_focusable {
+                while index + step <= 2 && !found_focusable {
                     match index + step {
                         MAIN_WINDOW => {
                             if self.main_window_type.need_focus() {
@@ -177,7 +180,7 @@ impl Component<AppMsg, UserEvent> for AppWindow {
                                 step += 1;
                             }
                         }
-                        _ => ()
+                        _ => (),
                     }
                 }
                 if index + step <= 2 {
@@ -191,10 +194,9 @@ impl Component<AppMsg, UserEvent> for AppWindow {
                     self.active = Some(PLAYLIST_LIST);
                 }
                 return Some(AppMsg::GoForward(step as u16));
-            },
+            }
             Event::Keyboard(KeyEvent {
-                code: Key::Enter,
-                ..
+                code: Key::Enter, ..
             }) => {
                 if let Some(PLAYLIST_LIST) = self.active {
                     if let State::One(StateValue::Usize(index)) = child.state() {
@@ -221,7 +223,10 @@ impl Component<AppMsg, UserEvent> for AppWindow {
     }
 }
 
-fn table_events(ev: &tuirealm::Event<UserEvent>, child: &mut Box<dyn MockComponent>) -> Option<AppMsg> {
+fn table_events(
+    ev: &tuirealm::Event<UserEvent>,
+    child: &mut Box<dyn MockComponent>,
+) -> Option<AppMsg> {
     let cmd = match ev {
         Event::Keyboard(KeyEvent {
             code: Key::Down, ..

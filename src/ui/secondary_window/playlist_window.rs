@@ -1,16 +1,21 @@
 use core::playlist_manager::Playlist;
 
 use tui_realm_stdlib::Table;
-use tuirealm::{MockComponent, props::{TableBuilder, TextSpan, Color, TextModifiers}, Component, NoUserEvent, Event, event::{KeyEvent, Key}, command::{Cmd, Direction, Position}};
+use tuirealm::{
+    command::{Cmd, Direction, Position},
+    event::{Key, KeyEvent},
+    props::{Color, TableBuilder, TextModifiers, TextSpan},
+    Component, Event, MockComponent,
+};
 
-use crate::ui::{AppMsg, event::UserEvent};
+use crate::ui::{event::UserEvent, AppMsg};
 
 const UNKNOWN_ARTIST: &'static str = "Unkwnown";
 const UNKNOWN_DURATION: &'static str = " - ";
 
 #[derive(MockComponent)]
 pub struct PlaylistWindow {
-    component: Table
+    component: Table,
 }
 
 impl PlaylistWindow {
@@ -24,7 +29,10 @@ impl PlaylistWindow {
                 builder.add_col(TextSpan::new(index.to_string()).italic());
                 builder.add_col(TextSpan::new(details.name()).italic());
                 builder.add_col(TextSpan::new(details.artist().unwrap_or(UNKNOWN_ARTIST)).italic());
-                builder.add_col(TextSpan::new(details.duration_str().unwrap_or(UNKNOWN_DURATION.into())).italic());
+                builder.add_col(
+                    TextSpan::new(details.duration_str().unwrap_or(UNKNOWN_DURATION.into()))
+                        .italic(),
+                );
                 if index < songs.len() - 1 {
                     builder.add_row();
                 }

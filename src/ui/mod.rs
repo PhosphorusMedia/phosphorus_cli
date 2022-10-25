@@ -1,25 +1,30 @@
 use core::{playlist_manager::PlaylistManager, queue::QueueManager};
-use std::{time::Duration, sync::mpsc::{Sender, Receiver}};
+use std::{
+    sync::mpsc::{Receiver, Sender},
+    time::Duration,
+};
 
 use tuirealm::{
     event::{Key, KeyEvent, KeyModifiers},
     terminal::TerminalBridge,
     tui::layout::{Constraint, Direction, Layout},
-    Application, EventListenerCfg, NoUserEvent, Sub, SubEventClause, Update,
+    Application, EventListenerCfg, Sub, SubEventClause, Update,
 };
 
-use crate::ui::{app_window::AppWindow, search_bar::SearchBar, status_bar::StatusBar, event::UserEventPort};
+use crate::ui::{
+    app_window::AppWindow, event::UserEventPort, search_bar::SearchBar, status_bar::StatusBar,
+};
 
 use self::event::UserEvent;
 
 mod app_window;
-mod secondary_window;
+mod event;
 mod playlist_list;
 mod queue;
 mod search_bar;
+mod secondary_window;
 mod status_bar;
 mod welcome_window;
-mod event;
 
 #[derive(Debug, Eq, PartialEq, Clone, Hash)]
 pub enum Id {
@@ -92,7 +97,7 @@ pub struct Model {
     active: FocusableItem,
     secondary_window_active: bool,
     esc_count: u8,
-    tx: Sender<UserEvent>
+    tx: Sender<UserEvent>,
 }
 
 impl Model {
@@ -107,7 +112,7 @@ impl Model {
             active: FocusableItem::SearchBar,
             secondary_window_active: false,
             esc_count: 0,
-            tx
+            tx,
         }
     }
 
@@ -138,7 +143,7 @@ impl Model {
     pub fn init_app(
         playlist_manager: PlaylistManager,
         queue_manager: QueueManager,
-        rx: Receiver<UserEvent>
+        rx: Receiver<UserEvent>,
     ) -> Application<Id, AppMsg, UserEvent> {
         // Setup application
         // NOTE: NoUserEvent is a shorthand to tell tui-realm we're not going to use any custom user event

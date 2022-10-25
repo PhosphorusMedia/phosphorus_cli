@@ -11,7 +11,7 @@ pub enum UserEvent {
 impl Eq for UserEvent {}
 
 pub struct UserEventPort {
-    rx: Receiver<UserEvent>
+    rx: Receiver<UserEvent>,
 }
 
 impl UserEventPort {
@@ -27,7 +27,9 @@ impl UserEventPort {
 impl Poll<UserEvent> for UserEventPort {
     fn poll(&mut self) -> tuirealm::listener::ListenerResult<Option<tuirealm::Event<UserEvent>>> {
         let event = self.rx.recv();
-        if event.is_err() { return Ok(None); }
+        if event.is_err() {
+            return Ok(None);
+        }
         let event = event.unwrap();
         Ok(Some(Event::User(event)))
     }

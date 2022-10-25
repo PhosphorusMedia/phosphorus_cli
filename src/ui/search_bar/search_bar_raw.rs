@@ -3,7 +3,7 @@ use tuirealm::{
     command::{Cmd, CmdResult, Direction, Position},
     event::{Key, KeyEvent},
     props::{Borders, Style, TextModifiers},
-    AttrValue, Component, Event, MockComponent, NoUserEvent,
+    AttrValue, Component, Event, MockComponent,
 };
 
 use crate::ui::event::UserEvent;

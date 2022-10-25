@@ -3,10 +3,10 @@ use tuirealm::{
     event::{Key, KeyEvent, KeyModifiers},
     props::{Alignment, BorderSides, Borders, Color, Layout},
     tui::layout::{Constraint, Direction},
-    AttrValue, Attribute, Component, Event, MockComponent, NoUserEvent,
+    AttrValue, Attribute, Component, Event, MockComponent,
 };
 
-use super::{AppMsg, event::UserEvent};
+use super::{event::UserEvent, AppMsg};
 
 const LEFT_LABEL: usize = 0;
 const RIGHT_LABEL: usize = 1;

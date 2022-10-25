@@ -4,14 +4,14 @@ use tuirealm::{
     event::{Key, KeyEvent, KeyModifiers},
     props::{self, Borders, Color, Layout},
     tui::layout::{Constraint, Direction},
-    Component, Event, MockComponent, NoUserEvent,
+    Component, Event, MockComponent,
 };
 
 mod search_bar_raw;
 
 use self::search_bar_raw::SearchBarRaw;
 
-use super::{AppMsg, event::UserEvent};
+use super::{event::UserEvent, AppMsg};
 
 #[derive(MockComponent)]
 pub struct SearchBar {

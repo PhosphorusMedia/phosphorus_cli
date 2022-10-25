@@ -3,10 +3,10 @@ use tuirealm::{
     command::{Cmd, Direction, Position},
     event::{Key, KeyEvent},
     props::{Color, TableBuilder, TextModifiers, TextSpan},
-    Component, Event, MockComponent, NoUserEvent,
+    Component, Event, MockComponent,
 };
 
-use super::{AppMsg, event::UserEvent};
+use super::{event::UserEvent, AppMsg};
 
 #[derive(MockComponent)]
 pub struct PlaylistList {

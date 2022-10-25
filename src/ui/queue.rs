@@ -5,10 +5,10 @@ use tuirealm::{
     command::{Cmd, Direction, Position},
     event::{Key, KeyEvent},
     props::{Color, TableBuilder, TextModifiers, TextSpan},
-    Component, Event, MockComponent, NoUserEvent,
+    Component, Event, MockComponent,
 };
 
-use super::{AppMsg, event::UserEvent};
+use super::{event::UserEvent, AppMsg};
 
 #[derive(MockComponent)]
 pub struct Queue {
@@ -43,7 +43,7 @@ impl Queue {
             .row_height(1)
             .widths(&[70, 30])
             .modifiers(TextModifiers::BOLD | TextModifiers::UNDERLINED);
-        
+
         if list.len() > 0 {
             component = component.table(builder.build());
         }
