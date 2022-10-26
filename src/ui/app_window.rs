@@ -1,4 +1,4 @@
-use core::{playlist_manager::PlaylistManager, queue::QueueManager};
+use core::{playlist_manager::PlaylistManager, queue::QueueManager, song::Song};
 
 use tui_realm_stdlib::Container;
 use tuirealm::{
@@ -70,6 +70,7 @@ pub struct AppWindow {
     main_window_type: MainWindowType,
     previous_window: Option<MainWindowType>,
     playlist_manager: PlaylistManager,
+    active_playlist: Option<usize>,
     queue_manager: QueueManager,
 }
 
@@ -110,6 +111,7 @@ impl AppWindow {
             previous_window: None,
             playlist_manager,
             queue_manager,
+            active_playlist: None
         }
     }
 }
@@ -197,6 +199,7 @@ impl Component<AppMsg, UserEvent> for AppWindow {
             }) => {
                 if PLAYLIST_LIST == self.active {
                     if let State::One(StateValue::Usize(index)) = child.state() {
+                        self.active_playlist = Some(index);
                         let playlist = self.playlist_manager.playlists().get(index).unwrap();
                         if self.main_window_type.is_secondary() {
                             self.previous_window = Some(MainWindowType::Welcome);
@@ -208,6 +211,38 @@ impl Component<AppMsg, UserEvent> for AppWindow {
                         children.insert(MAIN_WINDOW, PlaylistWindow::new(playlist).boxed());
                         self.active = MAIN_WINDOW;
                         return Some(AppMsg::ShowPlaylist);
+                    }
+                }
+            }
+            Event::Keyboard(KeyEvent {
+                code: Key::Char('+'),
+                ..
+            }) => {
+                if MAIN_WINDOW == self.active && MainWindowType::PlaylistSongs == self.main_window_type {
+                    if let State::One(StateValue::Usize(index)) = child.state() {
+                        let playlist = self.playlist_manager.playlists().get(self.active_playlist.unwrap());
+                        let playlist = if let Some(playlist) = playlist {
+                            playlist
+                        } else {
+                            return Some(AppMsg::None);
+                        };
+                        let song = playlist.songs().get(index).unwrap();
+                        let song: Song = song.clone();
+                        self.queue_manager.push(song);
+                        rebuild_queue(&self.queue_manager, children);
+                        return Some(AppMsg::None);
+                    }
+                }
+            },
+            Event::Keyboard(KeyEvent {
+                code: Key::Char('-'),
+                ..
+            }) => {
+                if QUEUE == self.active {
+                    if let State::One(StateValue::Usize(index)) = child.state() {
+                        self.queue_manager.remove(index);
+                        rebuild_queue(&self.queue_manager, children);
+                        return Some(AppMsg::None);
                     }
                 }
             }
@@ -247,4 +282,9 @@ fn table_events(
 
     child.perform(cmd);
     Some(AppMsg::None)
+}
+
+fn rebuild_queue(queue: &QueueManager, children: &mut Vec<Box<dyn MockComponent>>) {
+    children.remove(QUEUE);
+    children.insert(QUEUE, Queue::default().list(queue.details()).boxed());
 }
