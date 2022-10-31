@@ -27,6 +27,7 @@ pub enum MainWindowType {
     Welcome,
     Help,
     PlaylistSongs,
+    Results,
 }
 
 impl MainWindowType {
@@ -35,6 +36,7 @@ impl MainWindowType {
             MainWindowType::Welcome => false,
             MainWindowType::Help => true,
             MainWindowType::PlaylistSongs => true,
+            MainWindowType::Results => true,
         }
     }
 
@@ -43,6 +45,7 @@ impl MainWindowType {
             MainWindowType::Welcome => false,
             MainWindowType::Help => true,
             MainWindowType::PlaylistSongs => true,
+            MainWindowType::Results => false,
         }
     }
 
@@ -59,6 +62,7 @@ impl MainWindowType {
             MainWindowType::Welcome => false,
             MainWindowType::Help => true,
             MainWindowType::PlaylistSongs => true,
+            MainWindowType::Results => true,
         }
     }
 }
