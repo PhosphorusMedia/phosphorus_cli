@@ -11,11 +11,15 @@ use super::{event::UserEvent, AppMsg};
 const LEFT_LABEL: usize = 0;
 const RIGHT_LABEL: usize = 1;
 
+/// Defines how many times ESC has to be
+/// pressed before the application closes
 const MAX_ESC_TOLERANCE: u16 = 2;
 
 const STD_MSG: &'static str = "Press 2 times ESC to quit";
 const QUIT_MSG: &'static str = "Press ESC again to quit";
+/// Message shown when the help window is opened and visible
 const HELP_MSG: &'static str = "Press ESC to close help window";
+/// Message shown when a playlist view is opened and visible
 const PLAYLIST_MSG: &'static str = "Press ESC to close playlist window";
 
 #[derive(MockComponent)]
