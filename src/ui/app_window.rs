@@ -122,28 +122,26 @@ impl AppWindow {
 
 impl Component<AppMsg, UserEvent> for AppWindow {
     fn on(&mut self, ev: tuirealm::Event<UserEvent>) -> Option<AppMsg> {
-        match ev {
-            Event::Keyboard(KeyEvent {
-                code: Key::Char('h'),
-                modifiers: KeyModifiers::CONTROL,
-            }) => {
-                if self.main_window_type != MainWindowType::Help {
-                    if self.main_window_type.is_secondary() {
-                        self.previous_window = Some(MainWindowType::Welcome);
-                    } else {
-                        self.previous_window = Some(self.main_window_type);
-                    }
-                    self.main_window_type = MainWindowType::Help;
-                    self.component.children.remove(MAIN_WINDOW);
-                    self.component
-                        .children
-                        .insert(MAIN_WINDOW, self.main_window_type.default().unwrap());
-                    self.active = MAIN_WINDOW;
-                    return Some(AppMsg::ShowHelp);
+        // Event for help windows opening
+        if let Event::Keyboard(KeyEvent {
+            code: Key::Char('h'),
+            modifiers: KeyModifiers::CONTROL,
+        }) = ev {
+            if self.main_window_type != MainWindowType::Help {
+                if self.main_window_type.is_secondary() {
+                    self.previous_window = Some(MainWindowType::Welcome);
+                } else {
+                    self.previous_window = Some(self.main_window_type);
                 }
+                self.main_window_type = MainWindowType::Help;
+                self.component.children.remove(MAIN_WINDOW);
+                self.component
+                    .children
+                    .insert(MAIN_WINDOW, self.main_window_type.default().unwrap());
+                self.active = MAIN_WINDOW;
+                return Some(AppMsg::ShowHelp);
             }
-            _ => (),
-        };
+        }
 
         let index = self.active;
         let children: &mut Vec<Box<dyn MockComponent>> = self.component.children.as_mut();

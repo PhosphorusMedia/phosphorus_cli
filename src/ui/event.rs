@@ -9,6 +9,7 @@ pub enum UserEvent {
     /// A playlist view has been opened
     PlaylistViewOpened,
     SecondaryWindowClosed,
+    QuerySent,
 }
 
 impl Eq for UserEvent {}

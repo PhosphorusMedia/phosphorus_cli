@@ -49,6 +49,7 @@ pub enum AppMsg {
     GoForward(u16),
     ShowHelp,
     ShowPlaylist,
+    QuerySent(String),
     None,
 }
 
@@ -98,7 +99,7 @@ pub struct Model {
     // Used to track the active component
     active: FocusableItem,
     is_secondary_window_active: bool,
-    tx: Sender<UserEvent>,
+    user_event: Sender<UserEvent>,
 }
 
 impl Model {
@@ -112,7 +113,7 @@ impl Model {
             terminal: TerminalBridge::new().expect("Cannot initialize terminal"),
             active: FocusableItem::SearchBar,
             is_secondary_window_active: false,
-            tx,
+            user_event: tx,
         }
     }
 
@@ -218,7 +219,7 @@ impl Update<AppMsg> for Model {
                 AppMsg::LoseFocus => {
                     if self.is_secondary_window_active {
                         self.is_secondary_window_active = false;
-                        let _ = self.tx.send(UserEvent::SecondaryWindowClosed);
+                        let _ = self.user_event.send(UserEvent::SecondaryWindowClosed);
                         if let Some(item) = self.active.below_item() {
                             self.active = item;
                             assert!(self.app.active(&self.active.to_id()).is_ok());
@@ -254,7 +255,7 @@ impl Update<AppMsg> for Model {
                     assert!(self.app.active(&self.active.to_id()).is_ok());
                 }
                 AppMsg::ShowHelp => {
-                    let _ = self.tx.send(UserEvent::HelpOpened);
+                    let _ = self.user_event.send(UserEvent::HelpOpened);
                     self.active = FocusableItem::SecondaryWindow;
                     self.is_secondary_window_active = true;
 
@@ -263,13 +264,16 @@ impl Update<AppMsg> for Model {
                     assert!(self.app.active(&self.active.to_id()).is_ok());
                 }
                 AppMsg::ShowPlaylist => {
-                    let _ = self.tx.send(UserEvent::PlaylistViewOpened);
+                    let _ = self.user_event.send(UserEvent::PlaylistViewOpened);
                     self.active = FocusableItem::SecondaryWindow;
                     self.is_secondary_window_active = true;
 
                     // Again, I don't know why this has to repeted
                     assert!(self.app.active(&self.active.to_id()).is_ok());
                     assert!(self.app.active(&self.active.to_id()).is_ok());
+                },
+                AppMsg::QuerySent(_query) => {
+                    let _ = self.user_event.send(UserEvent::QuerySent);
                 }
                 _ => (),
             }

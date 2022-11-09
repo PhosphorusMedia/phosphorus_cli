@@ -22,6 +22,8 @@ const HELP_MSG: &'static str = "Press ESC to close help window";
 /// Message shown when a playlist view is opened and visible
 const PLAYLIST_MSG: &'static str = "Press ESC to close playlist window";
 
+const QUERY_SENT_MSG: &'static str = "Fetching results...";
+
 #[derive(MockComponent)]
 pub struct StatusBar {
     component: Container,
@@ -107,6 +109,11 @@ impl Component<AppMsg, UserEvent> for StatusBar {
                 let child: &mut Box<dyn MockComponent> = children.get_mut(LEFT_LABEL).unwrap();
                 child.attr(Attribute::Text, AttrValue::String(PLAYLIST_MSG.into()));
                 self.is_secondary_window_active = true;
+            }
+            UserEvent::QuerySent => {
+                let child: &mut Box<dyn MockComponent> = children.get_mut(RIGHT_LABEL).unwrap();
+                child.attr(Attribute::Text, AttrValue::String(QUERY_SENT_MSG.into()));
+                return Some(AppMsg::None);
             }
             _ => (),
         }

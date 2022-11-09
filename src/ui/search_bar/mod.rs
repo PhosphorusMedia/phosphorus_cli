@@ -4,7 +4,7 @@ use tuirealm::{
     event::{Key, KeyEvent, KeyModifiers},
     props::{BorderSides, Borders, Color, Layout},
     tui::layout::{Constraint, Direction},
-    Component, Event, MockComponent,
+    Component, Event, MockComponent, State, StateValue,
 };
 
 mod search_bar_raw;
@@ -12,6 +12,8 @@ mod search_bar_raw;
 use self::search_bar_raw::SearchBarRaw;
 
 use super::{event::UserEvent, AppMsg};
+
+const SEARCH_BAR: usize = 1;
 
 #[derive(MockComponent)]
 pub struct SearchBar {
@@ -81,6 +83,15 @@ impl Component<AppMsg, UserEvent> for SearchBar {
                 modifiers: KeyModifiers::NONE | KeyModifiers::SHIFT,
             }) => Cmd::Type(ch),
             Event::Keyboard(KeyEvent { code: Key::Tab, .. }) => return Some(AppMsg::GoNextItem),
+            Event::Keyboard(KeyEvent { code: Key::Enter, .. }) => {
+                let children: &mut Vec<Box<dyn MockComponent>> = self.component.children.as_mut();
+                let child: &mut Box<dyn MockComponent> = children.get_mut(SEARCH_BAR).unwrap();
+                
+                if let State::One(StateValue::String(query)) = child.state() {
+                    return Some(AppMsg::QuerySent(query));
+                }
+                return Some(AppMsg::None);
+            },
             _ => Cmd::None,
         };
 
