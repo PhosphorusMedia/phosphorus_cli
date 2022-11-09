@@ -4,6 +4,7 @@ use std::{
     time::Duration,
 };
 
+use plugin_manager::query::{QueryInfo, QueryResult};
 use tuirealm::{
     event::{Key, KeyEvent, KeyModifiers},
     terminal::TerminalBridge,
@@ -15,7 +16,7 @@ use crate::ui::{
     app_window::AppWindow, event::UserEventPort, search_bar::SearchBar, status_bar::StatusBar,
 };
 
-use self::event::UserEvent;
+use self::{event::UserEvent, querier::Querier};
 
 mod app_window;
 mod event;
@@ -25,6 +26,7 @@ mod search_bar;
 mod secondary_window;
 mod status_bar;
 mod welcome_window;
+mod querier;
 
 #[derive(Debug, Eq, PartialEq, Clone, Hash)]
 pub enum Id {
@@ -100,13 +102,15 @@ pub struct Model {
     active: FocusableItem,
     is_secondary_window_active: bool,
     user_event: Sender<UserEvent>,
+    querier: Querier
 }
 
 impl Model {
-    pub fn new(playlist_manager: PlaylistManager, queue_manager: QueueManager) -> Self {
+    pub fn new(playlist_manager: PlaylistManager, queue_manager: QueueManager) -> Result<Self, ()> {
         let (tx, rx) = std::sync::mpsc::channel();
+        let querier = Querier::new(tx.clone())?;
 
-        Self {
+        Ok(Self {
             app: Self::init_app(playlist_manager, queue_manager, rx),
             quit: false,
             redraw: true,
@@ -114,7 +118,8 @@ impl Model {
             active: FocusableItem::SearchBar,
             is_secondary_window_active: false,
             user_event: tx,
-        }
+            querier
+        })
     }
 
     pub fn view(&mut self) {
@@ -198,6 +203,16 @@ impl Model {
 
         assert!(app
             .subscribe(
+                &Id::AppWindow,
+                Sub::new(
+                    SubEventClause::User(UserEvent::QueryResult(QueryResult::default())),
+                    tuirealm::SubClause::Always
+                )
+            )
+            .is_ok());
+
+        assert!(app
+            .subscribe(
                 &Id::StatusBar,
                 Sub::new(SubEventClause::Any, tuirealm::SubClause::Always)
             )
@@ -272,7 +287,9 @@ impl Update<AppMsg> for Model {
                     assert!(self.app.active(&self.active.to_id()).is_ok());
                     assert!(self.app.active(&self.active.to_id()).is_ok());
                 },
-                AppMsg::QuerySent(_query) => {
+                AppMsg::QuerySent(query) => {
+                    let query = QueryInfo::as_raw(&query);
+                    self.querier.query(query);
                     let _ = self.user_event.send(UserEvent::QuerySent);
                 }
                 _ => (),

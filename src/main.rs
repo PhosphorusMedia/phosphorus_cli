@@ -30,7 +30,14 @@ fn main() {
     let queue_manager = QueueManager::default();
 
     // Setup model
-    let mut model = Model::new(playlist_manager, queue_manager);
+    let model = Model::new(playlist_manager, queue_manager);
+    let mut model = match model {
+        Ok(model) => model,
+        Err(_) => {
+            eprintln!("An error occured while trying to create the querier");
+            std::process::exit(1);
+        },
+    };
     // Enter alternate screen
     let _ = model.terminal.enter_alternate_screen();
     let _ = model.terminal.enable_raw_mode();

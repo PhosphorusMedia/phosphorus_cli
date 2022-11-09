@@ -1,8 +1,9 @@
 use std::sync::mpsc::Receiver;
 
+use plugin_manager::query::QueryResult;
 use tuirealm::{listener::Poll, Event};
 
-#[derive(PartialEq, Clone, PartialOrd, Debug)]
+#[derive(Clone, PartialOrd, Debug)]
 pub enum UserEvent {
     /// The help window has been opened
     HelpOpened,
@@ -10,6 +11,18 @@ pub enum UserEvent {
     PlaylistViewOpened,
     SecondaryWindowClosed,
     QuerySent,
+    QueryResult(QueryResult),
+    QueryError(String)
+}
+
+impl PartialEq for UserEvent {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::QueryResult(_), Self::QueryResult(_)) => true,
+            (Self::QueryError(_), Self::QueryError(_)) => true,
+            _ => std::mem::discriminant(self) == std::mem::discriminant(other),
+        }
+    }
 }
 
 impl Eq for UserEvent {}

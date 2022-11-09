@@ -13,7 +13,7 @@ use super::{
     event::UserEvent,
     playlist_list::PlaylistList,
     queue::Queue,
-    secondary_window::{HelpWindow, PlaylistWindow},
+    secondary_window::{HelpWindow, PlaylistWindow, ResultsWindow},
     welcome_window::WelcomWindow,
     AppMsg,
 };
@@ -141,6 +141,22 @@ impl Component<AppMsg, UserEvent> for AppWindow {
                 self.active = MAIN_WINDOW;
                 return Some(AppMsg::ShowHelp);
             }
+        }
+
+        // Event for query results arrival
+        if let Event::User(UserEvent::QueryResult(result)) = ev {
+            if self.main_window_type.is_secondary() {
+                self.previous_window = Some(MainWindowType::Welcome);
+            } else {
+                self.previous_window = Some(self.main_window_type);
+            }
+            self.main_window_type = MainWindowType::Results;
+            self.component.children.remove(MAIN_WINDOW);
+            self.component
+                .children
+                .insert(MAIN_WINDOW, ResultsWindow::new(result).boxed());
+            self.active = MAIN_WINDOW;
+            return Some(AppMsg::None);
         }
 
         let index = self.active;

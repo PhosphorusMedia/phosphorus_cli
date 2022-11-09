@@ -23,6 +23,7 @@ const HELP_MSG: &'static str = "Press ESC to close help window";
 const PLAYLIST_MSG: &'static str = "Press ESC to close playlist window";
 
 const QUERY_SENT_MSG: &'static str = "Fetching results...";
+const QUERY_SOLVED_MSG: &'static str = "Results fetched";
 
 #[derive(MockComponent)]
 pub struct StatusBar {
@@ -113,7 +114,10 @@ impl Component<AppMsg, UserEvent> for StatusBar {
             UserEvent::QuerySent => {
                 let child: &mut Box<dyn MockComponent> = children.get_mut(RIGHT_LABEL).unwrap();
                 child.attr(Attribute::Text, AttrValue::String(QUERY_SENT_MSG.into()));
-                return Some(AppMsg::None);
+            }
+            UserEvent::QueryResult(_) => {
+                let child: &mut Box<dyn MockComponent> = children.get_mut(RIGHT_LABEL).unwrap();
+                child.attr(Attribute::Text, AttrValue::String(QUERY_SOLVED_MSG.into()));
             }
             _ => (),
         }
