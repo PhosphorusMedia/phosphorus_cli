@@ -36,7 +36,7 @@ impl ResultsWindow {
             .headers(&["#", "Name", "Artist", "Duration"])
             .highlighted_str("➤ ")
             .row_height(1)
-            .widths(&[5, 45, 40, 10])
+            .widths(&[5, 50, 30, 15])
             .modifiers(TextModifiers::BOLD | TextModifiers::UNDERLINED);
 
         if data.len() > 0 {

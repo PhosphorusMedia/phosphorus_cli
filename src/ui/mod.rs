@@ -21,12 +21,12 @@ use self::{event::UserEvent, querier::Querier};
 mod app_window;
 mod event;
 mod playlist_list;
+mod querier;
 mod queue;
 mod search_bar;
 mod secondary_window;
 mod status_bar;
 mod welcome_window;
-mod querier;
 
 #[derive(Debug, Eq, PartialEq, Clone, Hash)]
 pub enum Id {
@@ -102,7 +102,7 @@ pub struct Model {
     active: FocusableItem,
     is_secondary_window_active: bool,
     user_event: Sender<UserEvent>,
-    querier: Querier
+    querier: Querier,
 }
 
 impl Model {
@@ -118,7 +118,7 @@ impl Model {
             active: FocusableItem::SearchBar,
             is_secondary_window_active: false,
             user_event: tx,
-            querier
+            querier,
         })
     }
 
@@ -286,7 +286,7 @@ impl Update<AppMsg> for Model {
                     // Again, I don't know why this has to repeted
                     assert!(self.app.active(&self.active.to_id()).is_ok());
                     assert!(self.app.active(&self.active.to_id()).is_ok());
-                },
+                }
                 AppMsg::QuerySent(query) => {
                     let query = QueryInfo::as_raw(&query);
                     self.querier.query(query);

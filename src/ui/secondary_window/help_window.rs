@@ -25,7 +25,7 @@ impl Default for HelpWindow {
             ["Ctrl + H", "Shows the help window"],
             ["ENTER", "Pressed over a playlist, shows its songs"],
             ["+", "Pressed over a song, pushes it in the queue"],
-            ["-", "Pressed over a song in the queue, removes it"]
+            ["-", "Pressed over a song in the queue, removes it"],
         ];
         let mut builder = TableBuilder::default();
         for row in &list.as_slice()[0..&list.len() - 1] {

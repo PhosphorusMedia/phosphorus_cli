@@ -36,7 +36,7 @@ fn main() {
         Err(_) => {
             eprintln!("An error occured while trying to create the querier");
             std::process::exit(1);
-        },
+        }
     };
     // Enter alternate screen
     let _ = model.terminal.enter_alternate_screen();

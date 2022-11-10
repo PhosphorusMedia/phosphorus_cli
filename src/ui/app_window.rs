@@ -115,7 +115,7 @@ impl AppWindow {
             previous_window: None,
             playlist_manager,
             queue_manager,
-            active_playlist: None
+            active_playlist: None,
         }
     }
 }
@@ -126,7 +126,8 @@ impl Component<AppMsg, UserEvent> for AppWindow {
         if let Event::Keyboard(KeyEvent {
             code: Key::Char('h'),
             modifiers: KeyModifiers::CONTROL,
-        }) = ev {
+        }) = ev
+        {
             if self.main_window_type != MainWindowType::Help {
                 if self.main_window_type.is_secondary() {
                     self.previous_window = Some(MainWindowType::Welcome);
@@ -172,7 +173,12 @@ impl Component<AppMsg, UserEvent> for AppWindow {
                     self.active = PLAYLIST_LIST;
                     child.attr(Attribute::Focus, AttrValue::Flag(false));
                     children.remove(MAIN_WINDOW);
-                    children.insert(MAIN_WINDOW, self.main_window_type.default().unwrap());
+                    children.insert(
+                        MAIN_WINDOW,
+                        self.main_window_type
+                            .default()
+                            .unwrap_or(WelcomWindow::default().boxed()),
+                    );
                 }
                 return Some(AppMsg::ResetFocus);
             }
@@ -236,9 +242,14 @@ impl Component<AppMsg, UserEvent> for AppWindow {
                 code: Key::Char('+'),
                 ..
             }) => {
-                if MAIN_WINDOW == self.active && MainWindowType::PlaylistSongs == self.main_window_type {
+                if MAIN_WINDOW == self.active
+                    && MainWindowType::PlaylistSongs == self.main_window_type
+                {
                     if let State::One(StateValue::Usize(index)) = child.state() {
-                        let playlist = self.playlist_manager.playlists().get(self.active_playlist.unwrap());
+                        let playlist = self
+                            .playlist_manager
+                            .playlists()
+                            .get(self.active_playlist.unwrap());
                         let playlist = if let Some(playlist) = playlist {
                             playlist
                         } else {
@@ -251,7 +262,7 @@ impl Component<AppMsg, UserEvent> for AppWindow {
                         return Some(AppMsg::None);
                     }
                 }
-            },
+            }
             Event::Keyboard(KeyEvent {
                 code: Key::Char('-'),
                 ..

@@ -12,7 +12,7 @@ pub enum UserEvent {
     SecondaryWindowClosed,
     QuerySent,
     QueryResult(QueryResult),
-    QueryError(String)
+    QueryError(String),
 }
 
 impl PartialEq for UserEvent {

@@ -7,7 +7,7 @@ use super::event::UserEvent;
 
 pub enum Message {
     Data(QueryInfo),
-    Quit
+    Quit,
 }
 
 pub struct Querier {
@@ -18,9 +18,7 @@ pub struct Querier {
 }
 
 impl Querier {
-    pub fn new(
-        user_event: Sender<UserEvent>,
-    ) -> Result<Self, ()> {
+    pub fn new(user_event: Sender<UserEvent>) -> Result<Self, ()> {
         // Channel used for communication between external api of
         // queries and intern worker
         let (internal_tx, internal_rx) = std::sync::mpsc::channel();
@@ -45,7 +43,7 @@ impl Querier {
                 let _ = tmp_tx.send(None);
                 std::process::exit(1);
             }
-            
+
             let runtime = tokio::runtime::Builder::new_current_thread()
                 .enable_all()
                 .build();
@@ -55,8 +53,8 @@ impl Querier {
                 Err(_) => {
                     eprintln!("Error in runtime creation");
                     let _ = tmp_tx.send(None);
-                    std::process::exit(1);  
-                },
+                    std::process::exit(1);
+                }
             };
 
             // Everythig was fine and the plugin manager has been created
@@ -81,11 +79,9 @@ impl Querier {
         // and the worker will be able to process queries. Otherwise, the worker is
         // shutdown and the caller must be informed of the error.
         if let Ok(Some(())) = tmp_rx.recv() {
-            return Ok(Self {
-                tx: internal_tx,
-            });
+            return Ok(Self { tx: internal_tx });
         }
-        
+
         Err(())
         /*let runtime = tokio::runtime::Builder::new_current_thread()
             .enable_all()
