@@ -49,8 +49,11 @@ pub enum AppMsg {
     /// Is like calling GoNext n time, so GoNextItem
     /// is equivalent to GoForward(1)
     GoForward(u16),
+    /// The help window has been requested
     ShowHelp,
+    /// Show songs in a playlist
     ShowPlaylist,
+    /// Boh
     QuerySent(String),
     None,
 }

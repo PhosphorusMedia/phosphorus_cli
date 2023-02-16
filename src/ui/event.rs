@@ -9,9 +9,13 @@ pub enum UserEvent {
     HelpOpened,
     /// A playlist view has been opened
     PlaylistViewOpened,
+    /// A secondary windows has been closed (`ESC` has been pressed)
     SecondaryWindowClosed,
+    /// Sent a query to the `plugin_manager`
     QuerySent,
+    /// A query has produced a successfull result
     QueryResult(QueryResult),
+    /// A query has failed and produces and error
     QueryError(String),
 }
 

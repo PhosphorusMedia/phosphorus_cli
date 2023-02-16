@@ -10,6 +10,14 @@ pub enum Message {
     Quit,
 }
 
+/// Implements an interface to interact with `plugin_manager`. `Querier`
+/// will create and internal worker that will serve queries.
+/// 
+/// In particular, queries can be sent to querier using its `query` method.
+/// That method will pass the query to the internal worker, who's then
+/// responsible for passing it to the `plugin_manager` and handled the result.
+/// The result will be sent to the opposite receiving half of the channel
+/// provided in `new`. So, the opposite half of `user_event`.
 pub struct Querier {
     tx: Sender<Message>,
     /*plugin_manager: PluginManager,
@@ -19,13 +27,20 @@ pub struct Querier {
 
 impl Querier {
     pub fn new(user_event: Sender<UserEvent>) -> Result<Self, ()> {
-        // Channel used for communication between external api of
-        // queries and intern worker
+        // Channel used for communication between querier and its internal
+        // worker. Querier APIs will send `crate::Message`s to internal
+        // worker who will receive them using `internal_rx`.
         let (internal_tx, internal_rx) = std::sync::mpsc::channel();
+
+        // Channel used to check the correct creation and setup of the
+        // internal woker. During its creation, the internal worker will
+        // send `None` through the channel if some error occured. If everything
+        // went as fine, one `Some(())` is sent at the end.
         let (tmp_tx, tmp_rx) = std::sync::mpsc::channel();
 
         // Internal worker
         let _thread = std::thread::spawn(move || {
+            // Creates the plugin manager and sets plugins
             let mut manager = PluginManager::new();
             if let Err(msg) = manager.register_plugin(Box::new(YouTube {}), "YouTube") {
                 eprintln!(

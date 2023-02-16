@@ -26,7 +26,6 @@ impl std::fmt::Display for ConfigError {
 
 impl std::error::Error for ConfigError {}
 
-#[allow(dead_code)]
 pub struct Paths {
     base: PathBuf,
     data: PathBuf,
@@ -34,7 +33,6 @@ pub struct Paths {
     download: PathBuf,
 }
 
-#[allow(dead_code)]
 impl Paths {
     pub fn new(base: PathBuf, data: PathBuf, cache: PathBuf, download: PathBuf) -> Self {
         Paths {

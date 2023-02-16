@@ -6,6 +6,7 @@ use crate::ui::Id;
 
 mod config;
 mod ui;
+mod player;
 
 fn main() {
     let paths = match config::config_env() {

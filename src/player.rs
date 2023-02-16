@@ -7,18 +7,16 @@ use std::{
     thread,
 };
 
-#[allow(dead_code)]
 pub enum Command {
     Play,
     Pause,
     Quit,
 }
 
-#[allow(dead_code)]
 pub struct Player {
     stream: (OutputStream, OutputStreamHandle),
     sink: Sink,
-    tx: Sender<Command>,
+    commands_sender: Sender<Command>,
     displayer: thread::JoinHandle<()>,
 }
 
@@ -32,7 +30,7 @@ impl Player {
         Ok(Player {
             stream: (stream, stream_handle),
             sink,
-            tx,
+            commands_sender: tx,
             displayer,
         })
     }
@@ -45,20 +43,20 @@ impl Player {
 
     pub fn play(&self) -> Result<(), SendError<Command>> {
         self.sink.play();
-        self.tx.send(Command::Play)?;
+        self.commands_sender.send(Command::Play)?;
         Ok(())
     }
 
     pub fn _pause(&self) -> Result<(), Box<dyn Error>> {
         self.sink.pause();
-        self.tx.send(Command::Pause)?;
+        self.commands_sender.send(Command::Pause)?;
         Ok(())
     }
 }
 
-fn display(rx: Receiver<Command>) {
+fn display(commands_receiver: Receiver<Command>) {
     loop {
-        let command = match rx.recv() {
+        let command = match commands_receiver.recv() {
             Ok(command) => command,
             Err(_) => break,
         };
@@ -79,7 +77,7 @@ fn display(rx: Receiver<Command>) {
 
 impl Drop for Player {
     fn drop(&mut self) {
-        let _result = self.tx.send(Command::Quit);
+        let _result = self.commands_sender.send(Command::Quit);
         self.sink.stop();
     }
 }
