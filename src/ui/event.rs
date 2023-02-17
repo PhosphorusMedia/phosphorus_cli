@@ -1,3 +1,4 @@
+use core::song::SongDetails;
 use std::sync::mpsc::Receiver;
 
 use plugin_manager::query::QueryResult;
@@ -17,6 +18,8 @@ pub enum UserEvent {
     QueryResult(QueryResult),
     /// A query has failed and produces and error
     QueryError(String),
+    /// Started playing a song
+    PlaySong(SongDetails),
 }
 
 impl PartialEq for UserEvent {

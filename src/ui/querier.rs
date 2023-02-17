@@ -12,7 +12,7 @@ pub enum Message {
 
 /// Implements an interface to interact with `plugin_manager`. `Querier`
 /// will create and internal worker that will serve queries.
-/// 
+///
 /// In particular, queries can be sent to querier using its `query` method.
 /// That method will pass the query to the internal worker, who's then
 /// responsible for passing it to the `plugin_manager` and handled the result.

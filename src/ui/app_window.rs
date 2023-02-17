@@ -236,6 +236,25 @@ impl Component<AppMsg, UserEvent> for AppWindow {
                         self.active = MAIN_WINDOW;
                         return Some(AppMsg::ShowPlaylist);
                     }
+                } else if MAIN_WINDOW == self.active
+                    && MainWindowType::PlaylistSongs == self.main_window_type
+                {
+                    if let State::One(StateValue::Usize(index)) = child.state() {
+                        let playlist = self
+                            .playlist_manager
+                            .playlists()
+                            .get(self.active_playlist.unwrap())
+                            .unwrap();
+
+                        if index >= playlist.songs().len() {
+                            return Some(AppMsg::MissingSong);
+                        }
+                        self.queue_manager.set_on_playlist(playlist, index);
+                        rebuild_queue(&self.queue_manager, children);
+                        return Some(AppMsg::Play(
+                            playlist.songs().get(index).unwrap().details().clone(),
+                        ));
+                    }
                 }
             }
             Event::Keyboard(KeyEvent {

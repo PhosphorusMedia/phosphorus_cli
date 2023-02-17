@@ -80,6 +80,13 @@ impl Component<AppMsg, UserEvent> for PlaylistWindow {
             }) => Cmd::GoTo(Position::Begin),
             Event::Keyboard(KeyEvent { code: Key::End, .. }) => Cmd::GoTo(Position::End),
             Event::Keyboard(KeyEvent { code: Key::Tab, .. }) => return Some(AppMsg::GoNextItem),
+            Event::Keyboard(KeyEvent {
+                code: Key::Enter, ..
+            }) => {
+                return Some(AppMsg::PlayFromPlaylist(
+                    self.state().unwrap_one().unwrap_usize(),
+                ))
+            }
             _ => Cmd::None,
         };
 

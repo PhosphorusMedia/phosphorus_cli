@@ -5,8 +5,9 @@ use ui::Model;
 use crate::ui::Id;
 
 mod config;
-mod ui;
+mod downloader;
 mod player;
+mod ui;
 
 fn main() {
     let paths = match config::config_env() {

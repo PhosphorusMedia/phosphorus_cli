@@ -1,4 +1,4 @@
-use core::{playlist_manager::PlaylistManager, queue::QueueManager};
+use core::{playlist_manager::PlaylistManager, queue::QueueManager, song::{SongDetails, self}};
 use std::{
     sync::mpsc::{Receiver, Sender},
     time::Duration,
@@ -55,6 +55,13 @@ pub enum AppMsg {
     ShowPlaylist,
     /// Boh
     QuerySent(String),
+    /// Plays a song from a playlist
+    PlayFromPlaylist(usize),
+    /// Plays the song
+    Play(SongDetails),
+    /// Tried to use a missing song. Missing means that the song isn't
+    /// in a playlist, or the queue or in the result window.
+    MissingSong,
     None,
 }
 
@@ -221,7 +228,7 @@ impl Model {
             )
             .is_ok());
 
-        // Initializes focus
+        // Initializes focus on search bar
         assert!(app.active(&Id::SearchBar).is_ok());
 
         app
@@ -294,6 +301,9 @@ impl Update<AppMsg> for Model {
                     let query = QueryInfo::as_raw(&query);
                     self.querier.query(query);
                     let _ = self.user_event.send(UserEvent::QuerySent);
+                }
+                AppMsg::Play(song_details) => {
+                    let _ = self.user_event.send(UserEvent::PlaySong(song_details));
                 }
                 _ => (),
             }

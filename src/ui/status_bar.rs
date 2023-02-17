@@ -155,6 +155,17 @@ impl Component<AppMsg, UserEvent> for StatusBar {
                     self.timer = None;
                 }
             }
+            UserEvent::PlaySong(song) => {
+                let child: &mut Box<dyn MockComponent> = children.get_mut(RIGHT_LABEL).unwrap();
+                child.attr(
+                    Attribute::Text,
+                    AttrValue::String(format!(
+                        "Playing {} by {}",
+                        song.name(),
+                        song.artist().unwrap_or("Uknown")
+                    )),
+                );
+            }
             _ => (),
         }
         Some(AppMsg::None)
