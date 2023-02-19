@@ -13,7 +13,7 @@ pub struct ResultsWindow {
 }
 
 impl ResultsWindow {
-    pub fn new(result: QueryResult) -> Self {
+    pub fn new(result: &QueryResult) -> Self {
         let data = result.data();
 
         let mut builder = TableBuilder::default();

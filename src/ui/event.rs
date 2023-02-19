@@ -25,8 +25,9 @@ pub enum UserEvent {
 impl PartialEq for UserEvent {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
-            (Self::QueryResult(_), Self::QueryResult(_)) => true,
-            (Self::QueryError(_), Self::QueryError(_)) => true,
+            (Self::QueryResult(_), _other) => true,
+            (Self::QueryError(_), _other) => true,
+            (Self::PlaySong(_), _other) => true,
             _ => std::mem::discriminant(self) == std::mem::discriminant(other),
         }
     }

@@ -1,5 +1,6 @@
 use core::{playlist_manager::PlaylistManager, queue::QueueManager, song::Song};
 
+use plugin_manager::query::QueryResult;
 use tui_realm_stdlib::Container;
 use tuirealm::{
     command::{Cmd, Direction as CDir, Position},
@@ -76,6 +77,7 @@ pub struct AppWindow {
     playlist_manager: PlaylistManager,
     active_playlist: Option<usize>,
     queue_manager: QueueManager,
+    current_result: Option<QueryResult>,
 }
 
 impl AppWindow {
@@ -116,6 +118,7 @@ impl AppWindow {
             playlist_manager,
             queue_manager,
             active_playlist: None,
+            current_result: None,
         }
     }
 }
@@ -155,8 +158,9 @@ impl Component<AppMsg, UserEvent> for AppWindow {
             self.component.children.remove(MAIN_WINDOW);
             self.component
                 .children
-                .insert(MAIN_WINDOW, ResultsWindow::new(result).boxed());
+                .insert(MAIN_WINDOW, ResultsWindow::new(&result).boxed());
             self.active = MAIN_WINDOW;
+            self.current_result = Some(result);
             return Some(AppMsg::None);
         }
 
@@ -220,8 +224,8 @@ impl Component<AppMsg, UserEvent> for AppWindow {
             }
             Event::Keyboard(KeyEvent {
                 code: Key::Enter, ..
-            }) => {
-                if PLAYLIST_LIST == self.active {
+            }) => match self.active {
+                PLAYLIST_LIST => {
                     if let State::One(StateValue::Usize(index)) = child.state() {
                         self.active_playlist = Some(index);
                         let playlist = self.playlist_manager.playlists().get(index).unwrap();
@@ -236,27 +240,41 @@ impl Component<AppMsg, UserEvent> for AppWindow {
                         self.active = MAIN_WINDOW;
                         return Some(AppMsg::ShowPlaylist);
                     }
-                } else if MAIN_WINDOW == self.active
-                    && MainWindowType::PlaylistSongs == self.main_window_type
-                {
-                    if let State::One(StateValue::Usize(index)) = child.state() {
-                        let playlist = self
-                            .playlist_manager
-                            .playlists()
-                            .get(self.active_playlist.unwrap())
-                            .unwrap();
-
-                        if index >= playlist.songs().len() {
-                            return Some(AppMsg::MissingSong);
-                        }
-                        self.queue_manager.set_on_playlist(playlist, index);
-                        rebuild_queue(&self.queue_manager, children);
-                        return Some(AppMsg::Play(
-                            playlist.songs().get(index).unwrap().details().clone(),
-                        ));
-                    }
                 }
-            }
+                MAIN_WINDOW => match self.main_window_type {
+                    MainWindowType::PlaylistSongs => {
+                        if let State::One(StateValue::Usize(index)) = child.state() {
+                            let playlist = self
+                                .playlist_manager
+                                .playlists()
+                                .get(self.active_playlist.unwrap())
+                                .unwrap();
+
+                            if index >= playlist.songs().len() {
+                                return Some(AppMsg::MissingSong);
+                            }
+                            self.queue_manager.set_on_playlist(playlist, index);
+                            rebuild_queue(&self.queue_manager, children);
+                            return Some(AppMsg::Play(
+                                playlist.songs().get(index).unwrap().details().clone(),
+                            ));
+                        }
+                    }
+                    MainWindowType::Results => {
+                        if let State::One(StateValue::Usize(index)) = child.state() {
+                            if let Some(result) = &self.current_result {
+                                if let Some(_song_data) = result.data().get(index) {
+                                    self.queue_manager.clear();
+                                    todo!();
+                                }
+                            }
+                        }
+                    }
+                    _ => {}
+                },
+                QUEUE => {}
+                _ => {}
+            },
             Event::Keyboard(KeyEvent {
                 code: Key::Char('+'),
                 ..

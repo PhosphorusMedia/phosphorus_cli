@@ -1,4 +1,8 @@
-use core::{playlist_manager::PlaylistManager, queue::QueueManager, song::{SongDetails, self}};
+use core::{
+    playlist_manager::PlaylistManager,
+    queue::QueueManager,
+    song::{self, SongDetails},
+};
 use std::{
     sync::mpsc::{Receiver, Sender},
     time::Duration,
@@ -13,13 +17,15 @@ use tuirealm::{
 };
 
 use crate::ui::{
-    app_window::AppWindow, event::UserEventPort, search_bar::SearchBar, status_bar::StatusBar,
+    app_window::AppWindow, event::UserEventPort, player_bar::PlayerBar, search_bar::SearchBar,
+    status_bar::StatusBar,
 };
 
 use self::{event::UserEvent, querier::Querier};
 
 mod app_window;
 mod event;
+mod player_bar;
 mod playlist_list;
 mod querier;
 mod queue;
@@ -34,6 +40,7 @@ pub enum Id {
     AppWindow,
     SearchBar,
     StatusBar,
+    PlayerBar,
 }
 
 #[derive(Debug, PartialEq)]
@@ -144,6 +151,7 @@ impl Model {
                         [
                             Constraint::Length(3), // SearchBar
                             Constraint::Min(6),    // AppWindow
+                            Constraint::Length(1), // PlayerBar
                             Constraint::Length(1), // StatusBar
                         ]
                         .as_ref(),
@@ -151,7 +159,8 @@ impl Model {
                     .split(f.size());
                 self.app.view(&Id::SearchBar, f, chunks[0]);
                 self.app.view(&Id::AppWindow, f, chunks[1]);
-                self.app.view(&Id::StatusBar, f, chunks[2]);
+                self.app.view(&Id::PlayerBar, f, chunks[2]);
+                self.app.view(&Id::StatusBar, f, chunks[3]);
             })
             .is_ok());
     }
@@ -184,6 +193,11 @@ impl Model {
                 Vec::default()
             )
             .is_ok());
+
+        assert!(app
+            .mount(Id::PlayerBar, PlayerBar::default().boxed(), Vec::default())
+            .is_ok());
+
         assert!(app
             .mount(Id::StatusBar, StatusBar::new().boxed(), Vec::default())
             .is_ok());
@@ -216,6 +230,16 @@ impl Model {
                 &Id::AppWindow,
                 Sub::new(
                     SubEventClause::User(UserEvent::QueryResult(QueryResult::default())),
+                    tuirealm::SubClause::Always
+                )
+            )
+            .is_ok());
+
+        assert!(app
+            .subscribe(
+                &Id::PlayerBar,
+                Sub::new(
+                    SubEventClause::User(UserEvent::PlaySong(SongDetails::default())),
                     tuirealm::SubClause::Always
                 )
             )
@@ -257,12 +281,10 @@ impl Update<AppMsg> for Model {
                 }
                 AppMsg::GoNextItem => {
                     self.active = self.active.next();
-                    /* This if statement is necessary to display components
-                      into the container as not focused when another component
-                      of the same container is focused.
-
-                      DO NOT REMOVE
-                    */
+                    // This if statement is necessary to display components
+                    //  into the container as not focused when another component
+                    //  of the same container is focused.
+                    //  DO NOT REMOVE
                     if let FocusableItem::MainWindow = self.active {
                         if self.is_secondary_window_active {
                             self.active = FocusableItem::SecondaryWindow;
