@@ -256,7 +256,7 @@ impl Component<AppMsg, UserEvent> for AppWindow {
                             self.queue_manager.set_on_playlist(playlist, index);
                             rebuild_queue(&self.queue_manager, children);
                             return Some(AppMsg::Play(
-                                playlist.songs().get(index).unwrap().details().clone(),
+                                playlist.songs().get(index).unwrap().clone(),
                             ));
                         }
                     }

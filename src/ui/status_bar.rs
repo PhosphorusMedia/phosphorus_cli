@@ -161,8 +161,8 @@ impl Component<AppMsg, UserEvent> for StatusBar {
                     Attribute::Text,
                     AttrValue::String(format!(
                         "Playing {} by {}",
-                        song.name(),
-                        song.artist().unwrap_or("Uknown")
+                        song.details().name(),
+                        song.details().artist().unwrap_or("Uknown")
                     )),
                 );
             }

@@ -1,7 +1,7 @@
 use core::{
     playlist_manager::PlaylistManager,
     queue::QueueManager,
-    song::{self, SongDetails},
+    song::{SongDetails, Song},
 };
 use std::{
     sync::mpsc::{Receiver, Sender},
@@ -65,7 +65,7 @@ pub enum AppMsg {
     /// Plays a song from a playlist
     PlayFromPlaylist(usize),
     /// Plays the song
-    Play(SongDetails),
+    Play(Song),
     /// Tried to use a missing song. Missing means that the song isn't
     /// in a playlist, or the queue or in the result window.
     MissingSong,
@@ -239,7 +239,7 @@ impl Model {
             .subscribe(
                 &Id::PlayerBar,
                 Sub::new(
-                    SubEventClause::User(UserEvent::PlaySong(SongDetails::default())),
+                    SubEventClause::User(UserEvent::PlaySong(Song::default())),
                     tuirealm::SubClause::Always
                 )
             )
@@ -324,8 +324,8 @@ impl Update<AppMsg> for Model {
                     self.querier.query(query);
                     let _ = self.user_event.send(UserEvent::QuerySent);
                 }
-                AppMsg::Play(song_details) => {
-                    let _ = self.user_event.send(UserEvent::PlaySong(song_details));
+                AppMsg::Play(song) => {
+                    let _ = self.user_event.send(UserEvent::PlaySong(song));
                 }
                 _ => (),
             }
