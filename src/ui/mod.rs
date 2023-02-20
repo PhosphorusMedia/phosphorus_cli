@@ -1,7 +1,7 @@
 use core::{
     playlist_manager::PlaylistManager,
     queue::QueueManager,
-    song::{SongDetails, Song},
+    song::{Song, SongDetails},
 };
 use std::{
     sync::mpsc::{Receiver, Sender},
@@ -151,7 +151,7 @@ impl Model {
                         [
                             Constraint::Length(3), // SearchBar
                             Constraint::Min(6),    // AppWindow
-                            Constraint::Length(1), // PlayerBar
+                            Constraint::Length(3), // PlayerBar
                             Constraint::Length(1), // StatusBar
                         ]
                         .as_ref(),
