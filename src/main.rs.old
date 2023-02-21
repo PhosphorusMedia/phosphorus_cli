@@ -1,14 +1,16 @@
+use downloader::download_and_play;
 use inquire::*;
 use plugin_manager::{query::*, PluginManager};
 use std::{fs, ops::Range};
 use termprogress::{Display, ProgressBar};
 use youtube::YouTube;
+use player::Player;
+use cli_io::{Action, Print};
 
-use crate::{
-    cli_io::{Action, Print},
-    download_and_play,
-    player::Player,
-};
+mod cli_io;
+mod config;
+mod downloader;
+mod player;
 
 #[tokio::main]
 async fn main() {
