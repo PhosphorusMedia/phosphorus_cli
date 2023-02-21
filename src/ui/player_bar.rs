@@ -1,5 +1,5 @@
 use core::song::SongDetails;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use tui_realm_stdlib::{Container, Label, Phantom, ProgressBar};
 use tuirealm::{
@@ -15,38 +15,32 @@ const CURRENT_TIME: usize = 2;
 const PROGRESS_INDICATOR: usize = 4;
 const LIMIT_TIME: usize = 6;
 
-type Formatter = fn(Option<&Duration>) -> String;
+type Formatter = fn(&Duration) -> String;
 
 /// Formatter for duration that produces a string in the
 /// form of mm:ss.
-fn short_formatter(duration: Option<&Duration>) -> String {
-    if let Some(duration) = duration {
-        let secs = duration.as_secs();
-        let mins: u64 = secs / 60;
-        format!("\n{:02}:{:02}", mins, secs)
-    } else {
-        "\n--:--".into()
-    }
+fn short_formatter(duration: &Duration) -> String {
+    let mut secs = duration.as_secs();
+    let mins: u64 = secs / 60;
+    secs -= mins * 60;
+    format!("\n{:02}:{:02}", mins, secs)
 }
 
 /// Formatter for duration that produces a string in the
 /// form of h:mm:ss.
-fn long_formatter(duration: Option<&Duration>) -> String {
-    if let Some(duration) = duration {
-        let secs = duration.as_secs();
-        let mut mins: u64 = secs / 60;
-        let hours: u64 = mins / 60;
-        mins = mins - hours * 60;
-        format!("\n{}:{:02}:{:02}", hours, mins, secs)
-    } else {
-        "\n--:--:--".into()
-    }
+fn long_formatter(duration: &Duration) -> String {
+    let mut secs = duration.as_secs();
+    let mut mins: u64 = secs / 60;
+    secs -= mins * 60;
+    let hours: u64 = mins / 60;
+    mins = mins - hours * 60;
+    format!("\n{}:{:02}:{:02}", hours, mins, secs)
 }
 
 #[derive(MockComponent)]
 pub struct PlayerBar {
     component: Container,
-    current_timing: Option<Duration>,
+    timing: Option<Instant>,
     formatter: Formatter,
 }
 
@@ -66,31 +60,38 @@ impl PlayerBar {
             )),
         );
 
-        self.current_timing = Some(Duration::default());
-        self.formatter = match details.duration() {
-            Some(duration) => {
-                if duration.as_secs() < 3600 {
-                    short_formatter
-                } else {
-                    long_formatter
-                }
+        // Initialize a timer for tracking reproduction state
+        self.timing = Some(Instant::now());
+
+        // Select the appropriate formatter function according to
+        // song duration
+        self.formatter = short_formatter;
+        if let Some(duration) = details.duration() {
+            // If the song lasts for at least one hour, the
+            // long formatter is used
+            if duration.as_secs() >= 3600 {
+                self.formatter = long_formatter;
             }
-            None => short_formatter,
-        };
+            children.get_mut(LIMIT_TIME).unwrap().attr(
+                Attribute::Text,
+                AttrValue::String((self.formatter)(duration)),
+            );
+        } else {
+            children
+                .get_mut(LIMIT_TIME)
+                .unwrap()
+                .attr(Attribute::Text, AttrValue::String("\n--:--".into()));
+        }
 
         children.get_mut(CURRENT_TIME).unwrap().attr(
             Attribute::Text,
-            AttrValue::String((self.formatter)(self.current_timing.as_ref())),
+            AttrValue::String((self.formatter)(&self.timing.unwrap().elapsed())),
         );
         children.get_mut(PROGRESS_INDICATOR).unwrap().attr(
             Attribute::Value,
             AttrValue::Payload(tuirealm::props::PropPayload::One(
-                tuirealm::props::PropValue::F64(0.5),
+                tuirealm::props::PropValue::F64(0.0),
             )),
-        );
-        children.get_mut(LIMIT_TIME).unwrap().attr(
-            Attribute::Text,
-            AttrValue::String((self.formatter)(details.duration())),
         );
     }
 }
@@ -139,7 +140,7 @@ impl Default for PlayerBar {
                             .as_ref(),
                         ),
                 ),
-            current_timing: None,
+            timing: None,
             formatter: short_formatter,
         }
     }
@@ -147,9 +148,22 @@ impl Default for PlayerBar {
 
 impl Component<AppMsg, UserEvent> for PlayerBar {
     fn on(&mut self, ev: tuirealm::Event<UserEvent>) -> Option<AppMsg> {
+        let children: &mut Vec<Box<dyn MockComponent>> = self.component.children.as_mut();
+
         match ev {
             Event::User(UserEvent::PlaySong(song)) => {
                 self.set_song(song.details());
+            }
+            Event::Tick => {
+                if let Some(timer) = self.timing {
+                    let duration = timer.elapsed();
+                    if duration.as_secs() > 0 {
+                        children.get_mut(CURRENT_TIME).unwrap().attr(
+                            Attribute::Text,
+                            AttrValue::String((self.formatter)(&duration)),
+                        );
+                    }
+                }
             }
             _ => {}
         }

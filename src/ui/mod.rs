@@ -1,8 +1,4 @@
-use core::{
-    playlist_manager::PlaylistManager,
-    queue::QueueManager,
-    song::{Song, SongDetails},
-};
+use core::{playlist_manager::PlaylistManager, queue::QueueManager, song::Song};
 use std::{
     sync::mpsc::{Receiver, Sender},
     time::Duration,
@@ -16,10 +12,10 @@ use tuirealm::{
     Application, EventListenerCfg, Sub, SubEventClause, Update,
 };
 
-use crate::ui::{
+use crate::{ui::{
     app_window::AppWindow, event::UserEventPort, player_bar::PlayerBar, search_bar::SearchBar,
     status_bar::StatusBar,
-};
+}, player::Player};
 
 use self::{event::UserEvent, querier::Querier};
 
@@ -66,6 +62,7 @@ pub enum AppMsg {
     PlayFromPlaylist(usize),
     /// Plays the song
     Play(Song),
+    PlayPause,
     /// Tried to use a missing song. Missing means that the song isn't
     /// in a playlist, or the queue or in the result window.
     MissingSong,
@@ -119,7 +116,15 @@ pub struct Model {
     active: FocusableItem,
     is_secondary_window_active: bool,
     user_event: Sender<UserEvent>,
+    /// Used to send queries to plugin manager
     querier: Querier,
+    /// Used to reproduce audio files
+    player: Player,
+    /// Used to track reproduction state:
+    /// None: no song is being played
+    /// Some(true): a song is current being played
+    /// Some(false): a song is being played, but has been paused
+    playing: Option<bool>,
 }
 
 impl Model {
@@ -136,6 +141,8 @@ impl Model {
             is_secondary_window_active: false,
             user_event: tx,
             querier,
+            player: Player::try_new().expect("Cannot initialize the player process"),
+            playing: None,
         })
     }
 
@@ -179,7 +186,7 @@ impl Model {
                 .default_input_listener(Duration::from_millis(20))
                 .port(UserEventPort::new(rx).boxed(), Duration::from_millis(100))
                 .poll_timeout(Duration::from_millis(10))
-                .tick_interval(Duration::from_millis(65)),
+                .tick_interval(Duration::from_millis(50)),
         );
 
         // Mounts the components
@@ -240,6 +247,16 @@ impl Model {
                 &Id::PlayerBar,
                 Sub::new(
                     SubEventClause::User(UserEvent::PlaySong(Song::default())),
+                    tuirealm::SubClause::Always
+                )
+            )
+            .is_ok());
+
+        assert!(app
+            .subscribe(
+                &Id::PlayerBar,
+                Sub::new(
+                    SubEventClause::Tick,
                     tuirealm::SubClause::Always
                 )
             )
@@ -325,7 +342,9 @@ impl Update<AppMsg> for Model {
                     let _ = self.user_event.send(UserEvent::QuerySent);
                 }
                 AppMsg::Play(song) => {
+                    self.player.initiate(&song).expect("Error in reproduction!");
                     let _ = self.user_event.send(UserEvent::PlaySong(song));
+                    self.playing = Some(true);
                 }
                 _ => (),
             }

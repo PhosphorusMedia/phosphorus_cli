@@ -312,6 +312,10 @@ impl Component<AppMsg, UserEvent> for AppWindow {
                     }
                 }
             }
+            Event::Keyboard(KeyEvent {
+                code: Key::Char(' '),
+                modifiers: KeyModifiers::CONTROL,
+            }) => return Some(AppMsg::PlayPause),
             _ => (),
         };
 

@@ -1,10 +1,10 @@
 use rodio::{Decoder, OutputStream, OutputStreamHandle, Sink};
+use core::song::Song;
 use std::{
     error::Error,
     fs::File,
     io::BufReader,
-    sync::mpsc::{Receiver, SendError, Sender},
-    thread,
+    sync::mpsc::{Receiver, SendError, Sender}
 };
 
 pub enum Command {
@@ -14,10 +14,9 @@ pub enum Command {
 }
 
 pub struct Player {
-    stream: (OutputStream, OutputStreamHandle),
+    _stream: (OutputStream, OutputStreamHandle),
     sink: Sink,
     commands_sender: Sender<Command>,
-    displayer: thread::JoinHandle<()>,
 }
 
 impl Player {
@@ -26,52 +25,34 @@ impl Player {
         let sink = Sink::try_new(&stream_handle)?;
 
         let (tx, rx) = std::sync::mpsc::channel();
-        let displayer = thread::spawn(move || display(rx));
         Ok(Player {
-            stream: (stream, stream_handle),
+            _stream: (stream, stream_handle),
             sink,
-            commands_sender: tx,
-            displayer,
+            commands_sender: tx
         })
+    }
+
+    pub fn initiate(&self, song: &Song) -> Result<(), SendError<Command>> {
+        
+        Ok(())
     }
 
     pub fn append(&self, source: Decoder<BufReader<File>>) -> Result<(), SendError<Command>> {
         self.sink.append(source);
-        self.play()?;
+        //self.play()?;
         Ok(())
     }
 
     pub fn play(&self) -> Result<(), SendError<Command>> {
         self.sink.play();
-        self.commands_sender.send(Command::Play)?;
+        //self.commands_sender.send(Command::Play)?;
         Ok(())
     }
 
     pub fn _pause(&self) -> Result<(), Box<dyn Error>> {
         self.sink.pause();
-        self.commands_sender.send(Command::Pause)?;
+        //self.commands_sender.send(Command::Pause)?;
         Ok(())
-    }
-}
-
-fn display(commands_receiver: Receiver<Command>) {
-    loop {
-        let command = match commands_receiver.recv() {
-            Ok(command) => command,
-            Err(_) => break,
-        };
-
-        match command {
-            Command::Play => {
-                println!("Play")
-            }
-            Command::Pause => {
-                println!("Pause")
-            }
-            Command::Quit => {
-                break;
-            }
-        }
     }
 }
 
