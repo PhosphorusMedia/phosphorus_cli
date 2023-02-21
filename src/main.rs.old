@@ -6,15 +6,9 @@ use youtube::YouTube;
 
 use crate::{
     cli_io::{Action, Print},
-    downloader::download_and_play,
+    download_and_play,
     player::Player,
 };
-
-mod cli_io;
-mod config;
-mod downloader;
-mod player;
-mod ui;
 
 #[tokio::main]
 async fn main() {

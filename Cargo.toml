@@ -10,7 +10,7 @@ plugin_manager = { path = "../plugin_manager" }
 youtube = { path = "../plugins/youtube" }
 core = { path = "../core" }
 tokio = { version = "1", features = ["full"] }
-rodio = "0.16.0"
+rodio = "0.17.0"
 ascii_table = "4.0.2"
 terminal_size = "0.2.1"
 directories = "4.0.1"
