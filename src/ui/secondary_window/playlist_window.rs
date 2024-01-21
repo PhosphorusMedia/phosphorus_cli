@@ -1,4 +1,4 @@
-use core::playlist_manager::Playlist;
+use phosphorus_core::playlist_manager::Playlist;
 
 use tui_realm_stdlib::Table;
 use tuirealm::{

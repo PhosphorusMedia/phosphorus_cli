@@ -1,4 +1,4 @@
-use core::song::SongDetails;
+use phosphorus_core::song::SongDetails;
 use std::time::{Duration, Instant};
 
 use tui_realm_stdlib::{Container, Label, Phantom, ProgressBar};

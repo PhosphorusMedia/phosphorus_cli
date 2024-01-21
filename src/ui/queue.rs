@@ -1,4 +1,4 @@
-use core::song::SongDetails;
+use phosphorus_core::song::SongDetails;
 
 use tui_realm_stdlib::Table;
 use tuirealm::{

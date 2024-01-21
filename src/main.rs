@@ -1,4 +1,4 @@
-use core::{playlist_manager::PlaylistManager, queue::QueueManager};
+use phosphorus_core::{playlist_manager::PlaylistManager, queue::QueueManager};
 use tuirealm::{AttrValue, Attribute, PollStrategy, Update};
 use ui::Model;
 

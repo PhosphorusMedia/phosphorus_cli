@@ -1,10 +1,10 @@
+use phosphorus_core::song::Song;
 use rodio::{Decoder, OutputStream, OutputStreamHandle, Sink};
-use core::song::Song;
 use std::{
     error::Error,
     fs::File,
     io::BufReader,
-    sync::mpsc::{Receiver, SendError, Sender}
+    sync::mpsc::{Receiver, SendError, Sender},
 };
 
 pub enum Command {
@@ -28,12 +28,11 @@ impl Player {
         Ok(Player {
             _stream: (stream, stream_handle),
             sink,
-            commands_sender: tx
+            commands_sender: tx,
         })
     }
 
     pub fn initiate(&self, song: &Song) -> Result<(), SendError<Command>> {
-        
         Ok(())
     }
 

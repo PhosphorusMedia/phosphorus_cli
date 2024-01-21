@@ -1,4 +1,4 @@
-use core::{playlist_manager::PlaylistManager, queue::QueueManager, song::Song};
+use phosphorus_core::{playlist_manager::PlaylistManager, queue::QueueManager, song::Song};
 use std::{
     sync::mpsc::{Receiver, Sender},
     time::Duration,
@@ -12,10 +12,13 @@ use tuirealm::{
     Application, EventListenerCfg, Sub, SubEventClause, Update,
 };
 
-use crate::{ui::{
-    app_window::AppWindow, event::UserEventPort, player_bar::PlayerBar, search_bar::SearchBar,
-    status_bar::StatusBar,
-}, player::Player};
+use crate::{
+    player::Player,
+    ui::{
+        app_window::AppWindow, event::UserEventPort, player_bar::PlayerBar, search_bar::SearchBar,
+        status_bar::StatusBar,
+    },
+};
 
 use self::{event::UserEvent, querier::Querier};
 
@@ -255,10 +258,7 @@ impl Model {
         assert!(app
             .subscribe(
                 &Id::PlayerBar,
-                Sub::new(
-                    SubEventClause::Tick,
-                    tuirealm::SubClause::Always
-                )
+                Sub::new(SubEventClause::Tick, tuirealm::SubClause::Always)
             )
             .is_ok());
 

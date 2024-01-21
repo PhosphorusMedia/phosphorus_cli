@@ -1,4 +1,4 @@
-use core::song::Song;
+use phosphorus_core::song::Song;
 use std::sync::mpsc::Receiver;
 
 use plugin_manager::query::QueryResult;

@@ -1,4 +1,4 @@
-use core::{playlist_manager::PlaylistManager, queue::QueueManager, song::Song};
+use phosphorus_core::{playlist_manager::PlaylistManager, queue::QueueManager, song::Song};
 
 use plugin_manager::query::QueryResult;
 use tui_realm_stdlib::Container;

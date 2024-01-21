@@ -59,7 +59,7 @@ impl PrintData {
             Some((terminal_size::Width(w), _)) => w,
             None => 150,
         } as usize;
-
+        
         table.set_max_width(terminal_size);
         table.print(&self.data);
     }
