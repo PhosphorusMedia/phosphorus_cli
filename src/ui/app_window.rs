@@ -263,9 +263,9 @@ impl Component<AppMsg, UserEvent> for AppWindow {
                     MainWindowType::Results => {
                         if let State::One(StateValue::Usize(index)) = child.state() {
                             if let Some(result) = &self.current_result {
-                                if let Some(_song_data) = result.data().get(index) {
+                                if let Some(song_data) = result.data().get(index) {
                                     self.queue_manager.clear();
-                                    todo!();
+                                    return Some(AppMsg::PlayFromResult(song_data.clone()));
                                 }
                             }
                         }

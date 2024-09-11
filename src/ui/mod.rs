@@ -4,7 +4,7 @@ use std::{
     time::Duration,
 };
 
-use plugin_manager::query::{QueryInfo, QueryResult};
+use plugin_manager::query::{QueryInfo, QueryResult, QueryResultData};
 use tuirealm::{
     event::{Key, KeyEvent, KeyModifiers},
     terminal::TerminalBridge,
@@ -13,6 +13,7 @@ use tuirealm::{
 };
 
 use crate::{
+    config::Paths,
     player::Player,
     ui::{
         app_window::AppWindow, event::UserEventPort, player_bar::PlayerBar, search_bar::SearchBar,
@@ -61,6 +62,8 @@ pub enum AppMsg {
     ShowPlaylist,
     /// Boh
     QuerySent(String),
+    /// Plays&downloads a song retrieving it from query results
+    PlayFromResult(QueryResultData),
     /// Plays a song from a playlist
     PlayFromPlaylist(usize),
     /// Plays the song
@@ -69,6 +72,7 @@ pub enum AppMsg {
     /// Tried to use a missing song. Missing means that the song isn't
     /// in a playlist, or the queue or in the result window.
     MissingSong,
+    DownloadSong(QueryResultData),
     None,
 }
 
@@ -118,6 +122,7 @@ pub struct Model {
     // Used to track the active component
     active: FocusableItem,
     is_secondary_window_active: bool,
+    paths: Paths,
     user_event: Sender<UserEvent>,
     /// Used to send queries to plugin manager
     querier: Querier,
@@ -131,7 +136,11 @@ pub struct Model {
 }
 
 impl Model {
-    pub fn new(playlist_manager: PlaylistManager, queue_manager: QueueManager) -> Result<Self, ()> {
+    pub fn new(
+        paths: Paths,
+        playlist_manager: PlaylistManager,
+        queue_manager: QueueManager,
+    ) -> Result<Self, ()> {
         let (tx, rx) = std::sync::mpsc::channel();
         let querier = Querier::new(tx.clone())?;
 
@@ -142,6 +151,7 @@ impl Model {
             terminal: TerminalBridge::new().expect("Cannot initialize terminal"),
             active: FocusableItem::SearchBar,
             is_secondary_window_active: false,
+            paths,
             user_event: tx,
             querier,
             player: Player::try_new().expect("Cannot initialize the player process"),
@@ -274,6 +284,10 @@ impl Model {
 
         app
     }
+
+    fn send_perc(&self, v: f32){
+        self.user_event.send(UserEvent::DownloadFinished(format!("{v}%")));
+    }
 }
 
 impl Update<AppMsg> for Model {
@@ -346,6 +360,37 @@ impl Update<AppMsg> for Model {
                     let _ = self.user_event.send(UserEvent::PlaySong(song));
                     self.playing = Some(true);
                 }
+                AppMsg::PlayFromResult(query_data) => {
+                    let file_name = self
+                        .paths
+                        .download()
+                        .join(format!(
+                            "{} -- {}",
+                            query_data.track_name(),
+                            query_data.artist_name()
+                        ))
+                        .to_str()
+                        .unwrap()
+                        .to_owned();
+                    self.querier
+                        .download(query_data.track_url().to_string(), file_name, |rx| {
+                            loop {
+                                match rx.recv() {
+                                    Ok(value) => {
+                                        //std::fs::File::options().append(true).open("perc.txt");
+                                        //std::fs::write("perc.txt", format!{"{value}%"});
+                                        if value == 100.0 {
+                                            break;
+                                        }
+                                    }
+                                    Err(_) => {
+                                        // The sender has terminated sending data
+                                        break;
+                                    }
+                                }
+                            }
+                        });
+                }
                 _ => (),
             }
         }
@@ -356,8 +401,8 @@ impl Update<AppMsg> for Model {
 
 impl Drop for Model {
     fn drop(&mut self) {
-        let _ = self.terminal.disable_raw_mode();
-        let _ = self.terminal.leave_alternate_screen();
-        self.quit = true;
+        //let _ = self.terminal.disable_raw_mode();
+        //let _ = self.terminal.leave_alternate_screen();
+        //self.quit = true;
     }
 }

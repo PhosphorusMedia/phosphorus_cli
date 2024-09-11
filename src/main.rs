@@ -32,7 +32,7 @@ fn main() {
     let queue_manager = QueueManager::default();
 
     // Setup model
-    let model = Model::new(playlist_manager, queue_manager);
+    let model = Model::new(paths, playlist_manager, queue_manager);
     let mut model = match model {
         Ok(model) => model,
         Err(_) => {

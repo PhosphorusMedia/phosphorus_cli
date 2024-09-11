@@ -4,13 +4,19 @@ use std::{
     error::Error,
     fs::File,
     io::BufReader,
-    sync::mpsc::{Receiver, SendError, Sender},
+    sync::mpsc::{SendError, Sender},
 };
 
 pub enum Command {
     Play,
     Pause,
     Quit,
+}
+
+pub enum State {
+    None,
+    Playing,
+    Paused,
 }
 
 pub struct Player {

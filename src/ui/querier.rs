@@ -1,12 +1,14 @@
 use std::sync::mpsc::Sender;
 
 use plugin_manager::{query::QueryInfo, PluginManager};
-use youtube::YouTube;
 
 use super::event::UserEvent;
+use plugin_manager::downloader::ProgressFollowerFn;
+use youtube::YouTube;
 
 pub enum Message {
-    Data(QueryInfo),
+    Search(QueryInfo),
+    Download(String, String, ProgressFollowerFn),
     Quit,
 }
 
@@ -15,14 +17,12 @@ pub enum Message {
 ///
 /// In particular, queries can be sent to querier using its `query` method.
 /// That method will pass the query to the internal worker, who's then
-/// responsible for passing it to the `plugin_manager` and handled the result.
+/// responsible for passing it to the `plugin_manager` and handle the result.
 /// The result will be sent to the opposite receiving half of the channel
 /// provided in `new`. So, the opposite half of `user_event`.
 pub struct Querier {
+    /// Sending half of the communication channel with the internal worker.
     tx: Sender<Message>,
-    /*plugin_manager: PluginManager,
-    runtime: Runtime,
-    tx: Sender<UserEvent>,*/
 }
 
 impl Querier {
@@ -77,15 +77,25 @@ impl Querier {
 
             loop {
                 let message = internal_rx.recv().unwrap_or(Message::Quit);
-                let query = match message {
-                    Message::Data(query) => query,
+                match message {
+                    Message::Search(query) => {
+                        let result = runtime.block_on(manager.query(query));
+                        let _ = match result {
+                            Ok(result) => user_event.send(UserEvent::QueryResult(result)),
+                            Err(error) => user_event.send(UserEvent::QueryError(error.to_string())),
+                        };
+                    }
+                    Message::Download(url, file_name, progress_follower) => {
+                        let result =
+                            runtime.block_on(manager.download(&url, &file_name, progress_follower));
+                        let _ = match result {
+                            Ok(result) => user_event.send(UserEvent::DownloadFinished(result)),
+                            Err(error) => {
+                                user_event.send(UserEvent::DownloadError(error.to_string()))
+                            }
+                        };
+                    }
                     Message::Quit => break,
-                };
-
-                let result = runtime.block_on(manager.query(query));
-                let _ = match result {
-                    Ok(result) => user_event.send(UserEvent::QueryResult(result)),
-                    Err(error) => user_event.send(UserEvent::QueryError(error.to_string())),
                 };
             }
         });
@@ -98,18 +108,17 @@ impl Querier {
         }
 
         Err(())
-        /*let runtime = tokio::runtime::Builder::new_current_thread()
-            .enable_all()
-            .build()?;
-        Ok(Self {
-            plugin_manager,
-            runtime,
-            tx,
-        })*/
     }
 
+    /// Sends a query to the internal worker who will serve it.
     pub fn query(&self, query: QueryInfo) {
-        let _ = self.tx.send(Message::Data(query));
+        let _ = self.tx.send(Message::Search(query));
+    }
+
+    pub fn download(&self, url: String, file_name: String, progress_follower: ProgressFollowerFn) {
+        let _ = self
+            .tx
+            .send(Message::Download(url, file_name, progress_follower));
     }
 }
 

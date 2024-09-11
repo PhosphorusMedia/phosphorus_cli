@@ -1,7 +1,7 @@
 use phosphorus_core::song::Song;
 use std::sync::mpsc::Receiver;
 
-use plugin_manager::query::QueryResult;
+use plugin_manager::query::{QueryResult, QueryResultData};
 use tuirealm::{listener::Poll, Event};
 
 #[derive(Clone, PartialOrd, Debug)]
@@ -20,6 +20,12 @@ pub enum UserEvent {
     QueryError(String),
     /// Started playing a song
     PlaySong(Song),
+    /// Started downloading&playing a song (streaming)
+    StreamSong(QueryResultData),
+    /// A download has succesfully finished
+    DownloadFinished(String),
+    /// A download has failed
+    DownloadError(String),
 }
 
 impl PartialEq for UserEvent {
