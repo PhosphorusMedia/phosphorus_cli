@@ -46,7 +46,7 @@ pub enum Id {
 pub enum AppMsg {
     /// Closes the application
     Quit,
-    /// The current active componen looses its focus
+    /// The current active componen loses its focus
     LoseFocus,
     /// Can be used when a secondary window is closed
     ResetFocus,
@@ -351,5 +351,13 @@ impl Update<AppMsg> for Model {
         }
 
         None
+    }
+}
+
+impl Drop for Model {
+    fn drop(&mut self) {
+        let _ = self.terminal.disable_raw_mode();
+        let _ = self.terminal.leave_alternate_screen();
+        self.quit = true;
     }
 }
