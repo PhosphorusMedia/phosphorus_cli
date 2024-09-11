@@ -16,7 +16,7 @@ pub enum UserEvent {
     QuerySent,
     /// A query has produced a successfull result
     QueryResult(QueryResult),
-    /// A query has failed and produces and error
+    /// A query has failed and produced and error
     QueryError(String),
     /// Started playing a song
     PlaySong(Song),
