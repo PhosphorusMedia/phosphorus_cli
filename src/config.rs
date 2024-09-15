@@ -4,6 +4,7 @@ const BASE: &'static str = ".phosphorus";
 const DATA: &'static str = "data";
 const CACHE: &'static str = "cache";
 const DOWNLOAD: &'static str = "download";
+const PLAYLISTS: &'static str = "playlists";
 
 #[derive(Debug)]
 pub enum ConfigError {
@@ -31,15 +32,17 @@ pub struct Paths {
     data: PathBuf,
     cache: PathBuf,
     download: PathBuf,
+    playlists: PathBuf,
 }
 
 impl Paths {
-    pub fn new(base: PathBuf, data: PathBuf, cache: PathBuf, download: PathBuf) -> Self {
+    pub fn new(base: PathBuf, data: PathBuf, cache: PathBuf, download: PathBuf, playlists: PathBuf) -> Self {
         Paths {
             base,
             data,
             cache,
             download,
+            playlists
         }
     }
 
@@ -74,6 +77,14 @@ impl Paths {
     pub fn download_as_str(&self) -> &str {
         &self.download.to_str().unwrap()
     }
+
+    pub fn playlists(&self) -> &PathBuf {
+        &self.playlists
+    }
+
+    pub fn playlists_as_str(&self) -> &str {
+        &self.playlists.to_str().unwrap()
+    }
 }
 
 /// Configures the environment creating the necessary folders.
@@ -94,12 +105,16 @@ pub fn config_env() -> Result<Paths, ConfigError> {
     let data = base.join(DATA);
     check_folder(&data, DATA)?;
 
-    let cache = data.join(CACHE);
+    let cache = base.join(CACHE);
     check_folder(&cache, CACHE)?;
-    let download = data.join(DOWNLOAD);
+    
+    let download = base.join(DOWNLOAD);
     check_folder(&download, DOWNLOAD)?;
+    
+    let playlists = base.join(PLAYLISTS);
+    check_folder(&playlists, PLAYLISTS)?;
 
-    Ok(Paths::new(base, data, cache, download))
+    Ok(Paths::new(base, data, cache, download, playlists))
 }
 
 fn check_folder(path: &std::path::PathBuf, dir: &'static str) -> Result<(), ConfigError> {

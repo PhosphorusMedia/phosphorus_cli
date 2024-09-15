@@ -19,11 +19,11 @@ fn main() {
         }
     };
 
-    let playlist_manager = match PlaylistManager::load(paths.data().clone().into_os_string()) {
+    let playlist_manager = match PlaylistManager::load(paths.download().clone().into_os_string(), paths.playlists().clone().into_os_string()) {
         Ok(pm) => pm,
         Err(msg) => {
             eprintln!("An error occured while trying to fetch playlists data");
-            eprintln!("{}", paths.data_as_str());
+            eprintln!("{}", paths.playlists_as_str());
             eprintln!("{}", msg);
             std::process::exit(1);
         }
