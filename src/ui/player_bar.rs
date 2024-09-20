@@ -138,7 +138,8 @@ impl Default for PlayerBar {
                                 Constraint::Percentage(20), // Empty space on the right
                             ]
                             .as_ref(),
-                        ),
+                        )
+                        .horizontal_margin(1),
                 ),
             timing: None,
             formatter: short_formatter,
