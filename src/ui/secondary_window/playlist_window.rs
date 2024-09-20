@@ -46,7 +46,7 @@ impl PlaylistWindow {
             .headers(&["#", "Name", "Artist", "Duration"])
             .highlighted_str("➤ ")
             .row_height(1)
-            .widths(&[5, 50, 35, 10])
+            .widths(&[5, 50, 30, 15])
             .modifiers(TextModifiers::BOLD | TextModifiers::UNDERLINED);
 
         if songs.len() > 0 {
