@@ -1,10 +1,10 @@
 use std::path::PathBuf;
 
 const BASE: &'static str = ".phosphorus";
-const DATA: &'static str = "data";
+const DATA: &'static str = "songs_meta";
 const CACHE: &'static str = "cache";
 const DOWNLOAD: &'static str = "download";
-const PLAYLISTS: &'static str = "playlists";
+const PLAYLISTS: &'static str = "playlists_meta";
 
 #[derive(Debug)]
 pub enum ConfigError {
@@ -36,13 +36,19 @@ pub struct Paths {
 }
 
 impl Paths {
-    pub fn new(base: PathBuf, data: PathBuf, cache: PathBuf, download: PathBuf, playlists: PathBuf) -> Self {
+    pub fn new(
+        base: PathBuf,
+        data: PathBuf,
+        cache: PathBuf,
+        download: PathBuf,
+        playlists: PathBuf,
+    ) -> Self {
         Paths {
             base,
             data,
             cache,
             download,
-            playlists
+            playlists,
         }
     }
 
@@ -107,10 +113,10 @@ pub fn config_env() -> Result<Paths, ConfigError> {
 
     let cache = base.join(CACHE);
     check_folder(&cache, CACHE)?;
-    
+
     let download = base.join(DOWNLOAD);
     check_folder(&download, DOWNLOAD)?;
-    
+
     let playlists = base.join(PLAYLISTS);
     check_folder(&playlists, PLAYLISTS)?;
 
