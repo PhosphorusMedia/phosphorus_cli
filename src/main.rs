@@ -1,4 +1,7 @@
-use phosphorus_core::{playlist_manager::PlaylistManager, queue::QueueManager};
+use phosphorus_core::{
+    playlist_manager::{self, PlaylistManager},
+    queue::QueueManager,
+};
 use tuirealm::{AttrValue, Attribute, PollStrategy, Update};
 use ui::Model;
 
@@ -19,7 +22,10 @@ fn main() {
         }
     };
 
-    let playlist_manager = match PlaylistManager::load(paths.download().clone().into_os_string(), paths.playlists().clone().into_os_string()) {
+    let mut playlist_manager = match PlaylistManager::load(
+        paths.data().clone().into_os_string(),
+        paths.playlists().clone().into_os_string(),
+    ) {
         Ok(pm) => pm,
         Err(msg) => {
             eprintln!("An error occured while trying to fetch playlists data");
@@ -28,6 +34,12 @@ fn main() {
             std::process::exit(1);
         }
     };
+
+    if let Err(msg) = playlist_manager.ensure_basics() {
+        eprintln!("An error occured while checking for the existence of basic playlists");
+        eprintln!("{}", msg);
+        std::process::exit(1);
+    }
 
     let queue_manager = QueueManager::default();
 
