@@ -17,7 +17,7 @@ pub enum TrackInfo {
     Finished,
 }
 
-pub struct DownloadTracker {
+pub(super) struct DownloadTracker {
     component: Container,
     downloads: Vec<String>,
     track_info_rx: Receiver<TrackInfo>,

@@ -8,7 +8,6 @@ use ui::Model;
 use crate::ui::Id;
 
 mod config;
-mod downloader;
 mod player;
 mod ui;
 

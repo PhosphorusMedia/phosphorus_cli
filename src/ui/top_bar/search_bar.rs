@@ -1,14 +1,8 @@
 use tui_realm_stdlib::Input;
 use tuirealm::{
-    command::{Cmd, CmdResult, Direction, Position},
-    event::{Key, KeyEvent},
     props::{Borders, Style, TextModifiers},
-    AttrValue, Component, Event, MockComponent,
+    AttrValue, MockComponent,
 };
-
-use crate::ui::event::UserEvent;
-
-use super::AppMsg;
 
 #[derive(MockComponent)]
 pub(super) struct SearchBar {
