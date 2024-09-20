@@ -186,6 +186,11 @@ impl Component<AppMsg, UserEvent> for AppWindow {
                 }
                 return Some(AppMsg::ResetFocus);
             }
+            Event::User(UserEvent::DownloadFinished(song)) => {
+                self.playlist_manager
+                    .add_to(song, crate::playlist_manager::ALL_SONGS);
+                return Some(AppMsg::None);
+            }
             Event::Keyboard(KeyEvent { code: Key::Tab, .. }) => {
                 // Removes focus from current active component
                 child.attr(Attribute::Focus, AttrValue::Flag(false));
@@ -265,7 +270,7 @@ impl Component<AppMsg, UserEvent> for AppWindow {
                             if let Some(result) = &self.current_result {
                                 if let Some(song_data) = result.data().get(index) {
                                     self.queue_manager.clear();
-                                    return Some(AppMsg::PlayFromResult(song_data.clone()));
+                                    return Some(AppMsg::DownloadSong(song_data.clone()));
                                 }
                             }
                         }

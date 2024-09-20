@@ -1,3 +1,6 @@
+use std::sync::mpsc::Sender;
+
+use download_tracker::{DownloadTracker, TrackInfo};
 use tui_realm_stdlib::{Container, Phantom};
 use tuirealm::{
     command::{Cmd, Position},
@@ -7,31 +10,35 @@ use tuirealm::{
     Component, Event, MockComponent, State, StateValue,
 };
 
-mod search_bar_raw;
+mod download_tracker;
+mod search_bar;
 
-use self::search_bar_raw::SearchBarRaw;
+use self::search_bar::SearchBar;
 
 use super::{event::UserEvent, AppMsg};
 
 const SEARCH_BAR: usize = 1;
+const DOWNLOAD_TRACKER: usize = 2;
 
 #[derive(MockComponent)]
-pub struct SearchBar {
+pub struct TopBar {
     component: Container,
+    tx: Sender<TrackInfo>,
 }
 
-impl SearchBar {
+impl TopBar {
     pub fn boxed(self) -> Box<Self> {
         Box::new(self)
     }
 }
 
-impl Default for SearchBar {
+impl Default for TopBar {
     fn default() -> Self {
+        let (tx, rx) = std::sync::mpsc::channel();
         let children: Vec<Box<dyn MockComponent>> = vec![
             Box::new(Phantom::default()),
-            SearchBarRaw::new().boxed(),
-            Box::new(Phantom::default()),
+            SearchBar::default().boxed(),
+            DownloadTracker::new(rx).boxed(),
         ];
 
         Self {
@@ -44,60 +51,66 @@ impl Default for SearchBar {
                         .direction(Direction::Horizontal)
                         .constraints(
                             [
-                                Constraint::Percentage(25),
-                                Constraint::Percentage(50),
-                                Constraint::Percentage(25),
+                                Constraint::Percentage(20),
+                                Constraint::Percentage(60),
+                                Constraint::Percentage(20),
                             ]
                             .as_ref(),
                         ),
                 ),
+            tx,
         }
     }
 }
 
-impl Component<AppMsg, UserEvent> for SearchBar {
+impl Component<AppMsg, UserEvent> for TopBar {
     fn on(&mut self, ev: tuirealm::Event<UserEvent>) -> Option<AppMsg> {
         let children: &mut Vec<Box<dyn MockComponent>> = self.component.children.as_mut();
-        let child: &mut Box<dyn MockComponent> = children.get_mut(1).unwrap();
 
-        let cmd = match ev {
+        let (child, cmd) = match ev {
             Event::Keyboard(KeyEvent {
                 code: Key::Left, ..
-            }) => Cmd::Move(tuirealm::command::Direction::Left),
+            }) => (SEARCH_BAR, Cmd::Move(tuirealm::command::Direction::Left)),
             Event::Keyboard(KeyEvent {
                 code: Key::Right, ..
-            }) => Cmd::Move(tuirealm::command::Direction::Right),
+            }) => (SEARCH_BAR, Cmd::Move(tuirealm::command::Direction::Right)),
             Event::Keyboard(KeyEvent {
                 code: Key::Home, ..
-            }) => Cmd::GoTo(Position::Begin),
-            Event::Keyboard(KeyEvent { code: Key::End, .. }) => Cmd::GoTo(Position::End),
+            }) => (SEARCH_BAR, Cmd::GoTo(Position::Begin)),
+            Event::Keyboard(KeyEvent { code: Key::End, .. }) => {
+                (SEARCH_BAR, Cmd::GoTo(Position::End))
+            }
             Event::Keyboard(KeyEvent {
                 code: Key::Delete, ..
-            }) => Cmd::Cancel,
+            }) => (SEARCH_BAR, Cmd::Cancel),
             Event::Keyboard(KeyEvent {
                 code: Key::Backspace,
                 ..
-            }) => Cmd::Delete,
+            }) => (SEARCH_BAR, Cmd::Delete),
             Event::Keyboard(KeyEvent {
                 code: Key::Char(ch),
                 modifiers: KeyModifiers::NONE | KeyModifiers::SHIFT,
-            }) => Cmd::Type(ch),
+            }) => (SEARCH_BAR, Cmd::Type(ch)),
             Event::Keyboard(KeyEvent { code: Key::Tab, .. }) => return Some(AppMsg::GoNextItem),
             Event::Keyboard(KeyEvent {
                 code: Key::Enter, ..
             }) => {
-                let children: &mut Vec<Box<dyn MockComponent>> = self.component.children.as_mut();
-                let child: &mut Box<dyn MockComponent> = children.get_mut(SEARCH_BAR).unwrap();
-
-                if let State::One(StateValue::String(query)) = child.state() {
+                let search_bar = children.get_mut(SEARCH_BAR).unwrap();
+                if let State::One(StateValue::String(query)) = search_bar.state() {
                     return Some(AppMsg::QuerySent(query));
                 }
-                return Some(AppMsg::None);
+                (SEARCH_BAR, Cmd::None)
             }
-            _ => Cmd::None,
+            Event::User(UserEvent::DownloadRegistered(song_name)) => {
+                let _ = self.tx.send(TrackInfo::New(song_name));
+                (DOWNLOAD_TRACKER, Cmd::Change)
+            }
+            _ => (SEARCH_BAR, Cmd::None),
         };
 
-        let _ = child.perform(cmd);
+        let child = children.get_mut(child).unwrap();
+        child.perform(cmd);
+
         Some(AppMsg::None)
     }
 }

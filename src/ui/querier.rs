@@ -89,7 +89,7 @@ impl Querier {
                         let result =
                             runtime.block_on(manager.download(&url, &file_name, progress_follower));
                         let _ = match result {
-                            Ok(result) => user_event.send(UserEvent::DownloadFinished(result)),
+                            Ok(_) => Ok(()),
                             Err(error) => {
                                 user_event.send(UserEvent::DownloadError(error.to_string()))
                             }

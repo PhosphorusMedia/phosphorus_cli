@@ -20,10 +20,12 @@ pub enum UserEvent {
     QueryError(String),
     /// Started playing a song
     PlaySong(Song),
-    /// Started downloading&playing a song (streaming)
-    StreamSong(QueryResultData),
+    /// Started downloadin a song
+    DownloadRequested(QueryResultData),
+    /// Registers a new download to serve
+    DownloadRegistered(String),
     /// A download has succesfully finished
-    DownloadFinished(String),
+    DownloadFinished(Song),
     /// A download has failed
     DownloadError(String),
 }
@@ -34,6 +36,10 @@ impl PartialEq for UserEvent {
             (Self::QueryResult(_), _other) => true,
             (Self::QueryError(_), _other) => true,
             (Self::PlaySong(_), _other) => true,
+            (Self::DownloadRequested(_), _other) => true,
+            (Self::DownloadRegistered(_), _other) => true,
+            (Self::DownloadFinished(_), _other) => true,
+            (Self::DownloadError(_), _other) => true,
             _ => std::mem::discriminant(self) == std::mem::discriminant(other),
         }
     }

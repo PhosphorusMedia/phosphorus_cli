@@ -1,4 +1,8 @@
-use phosphorus_core::{playlist_manager::PlaylistManager, queue::QueueManager, song::Song};
+use phosphorus_core::{
+    playlist_manager::PlaylistManager,
+    queue::QueueManager,
+    song::{Song, SongDetails},
+};
 use std::{
     sync::mpsc::{Receiver, Sender},
     time::Duration,
@@ -16,8 +20,8 @@ use crate::{
     config::Paths,
     player::Player,
     ui::{
-        app_window::AppWindow, event::UserEventPort, player_bar::PlayerBar, search_bar::SearchBar,
-        status_bar::StatusBar,
+        app_window::AppWindow, event::UserEventPort, player_bar::PlayerBar, status_bar::StatusBar,
+        top_bar::TopBar,
     },
 };
 
@@ -29,16 +33,16 @@ mod player_bar;
 mod playlist_list;
 mod querier;
 mod queue;
-mod search_bar;
 mod secondary_window;
 mod status_bar;
+mod top_bar;
 mod welcome_window;
 
 #[derive(Debug, Eq, PartialEq, Clone, Hash)]
 pub enum Id {
     Label,
     AppWindow,
-    SearchBar,
+    TopBar,
     StatusBar,
     PlayerBar,
 }
@@ -97,7 +101,7 @@ impl FocusableItem {
 
     pub fn to_id(&self) -> Id {
         match self {
-            FocusableItem::SearchBar => Id::SearchBar,
+            FocusableItem::SearchBar => Id::TopBar,
             _ => Id::AppWindow,
         }
     }
@@ -177,7 +181,7 @@ impl Model {
                         .as_ref(),
                     )
                     .split(f.size());
-                self.app.view(&Id::SearchBar, f, chunks[0]);
+                self.app.view(&Id::TopBar, f, chunks[0]);
                 self.app.view(&Id::AppWindow, f, chunks[1]);
                 self.app.view(&Id::PlayerBar, f, chunks[2]);
                 self.app.view(&Id::StatusBar, f, chunks[3]);
@@ -204,7 +208,7 @@ impl Model {
 
         // Mounts the components
         assert!(app
-            .mount(Id::SearchBar, SearchBar::default().boxed(), Vec::default())
+            .mount(Id::TopBar, TopBar::default().boxed(), Vec::default())
             .is_ok());
         assert!(app
             .mount(
@@ -213,11 +217,9 @@ impl Model {
                 Vec::default()
             )
             .is_ok());
-
         assert!(app
             .mount(Id::PlayerBar, PlayerBar::default().boxed(), Vec::default())
             .is_ok());
-
         assert!(app
             .mount(Id::StatusBar, StatusBar::new().boxed(), Vec::default())
             .is_ok());
@@ -279,14 +281,49 @@ impl Model {
             )
             .is_ok());
 
+        assert!(app
+            .subscribe(
+                &Id::TopBar,
+                Sub::new(
+                    SubEventClause::User(UserEvent::DownloadRegistered(String::default())),
+                    tuirealm::SubClause::Always
+                )
+            )
+            .is_ok());
+
         // Initializes focus on search bar
-        assert!(app.active(&Id::SearchBar).is_ok());
+        assert!(app.active(&Id::TopBar).is_ok());
 
         app
     }
 
-    fn send_perc(&self, v: f32){
-        self.user_event.send(UserEvent::DownloadFinished(format!("{v}%")));
+    /// A utility function which uses `QueryResultData` to create a `Song`
+    /// instance associated to the file `file_name.mp3` in the `Paths.download`
+    /// folder. The relative meta-file has the same name as the 'raw' one, but
+    /// is a json file withing the `Paths.data` directory.
+    fn create_song_file(&self, query_data: &QueryResultData, file_name: &str) -> Song {
+        let mp3 = self.paths.download().join(
+            format!("{}.mp3", file_name)
+                .to_lowercase()
+                .replace(" ", "_"),
+        );
+        let json = self.paths.data().join(
+            format!("{}.json", file_name)
+                .to_lowercase()
+                .replace(" ", "_"),
+        );
+
+        let song = Song::new(
+            mp3.to_str().unwrap(),
+            json.to_str().unwrap(),
+            SongDetails::new(
+                query_data.track_name(),
+                Some(query_data.artist_name()),
+                None,
+                Some(query_data.duration().clone()),
+            ),
+        );
+        song
     }
 }
 
@@ -360,25 +397,25 @@ impl Update<AppMsg> for Model {
                     let _ = self.user_event.send(UserEvent::PlaySong(song));
                     self.playing = Some(true);
                 }
-                AppMsg::PlayFromResult(query_data) => {
-                    let file_name = self
-                        .paths
-                        .download()
-                        .join(format!(
-                            "{} -- {}",
-                            query_data.track_name(),
-                            query_data.artist_name()
-                        ))
-                        .to_str()
-                        .unwrap()
-                        .to_owned();
-                    self.querier
-                        .download(query_data.track_url().to_string(), file_name, |rx| {
+                AppMsg::DownloadSong(query_data) => {
+                    // Let download tracker know about the new download
+                    let _ = self.user_event.send(UserEvent::DownloadRegistered(
+                        query_data.track_name().to_string(),
+                    ));
+                    let file_name = phosphorus_core::file_name_from_basics(
+                        query_data.track_name(),
+                        query_data.artist_name(),
+                    );
+                    let song = self.create_song_file(&query_data, &file_name);
+
+                    let raw_path = self.paths.download().join(&file_name);
+                    self.querier.download(
+                        query_data.track_url().to_string(),
+                        raw_path.to_str().unwrap().to_string(),
+                        |rx| {
                             loop {
                                 match rx.recv() {
                                     Ok(value) => {
-                                        //std::fs::File::options().append(true).open("perc.txt");
-                                        //std::fs::write("perc.txt", format!{"{value}%"});
                                         if value == 100.0 {
                                             break;
                                         }
@@ -389,7 +426,9 @@ impl Update<AppMsg> for Model {
                                     }
                                 }
                             }
-                        });
+                        },
+                    );
+                    let _ = self.user_event.send(UserEvent::DownloadFinished(song));
                 }
                 _ => (),
             }
