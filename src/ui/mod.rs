@@ -8,7 +8,7 @@ use std::{
     time::Duration,
 };
 
-use plugin_manager::query::{QueryInfo, QueryResult, QueryResultData};
+use phosphorus_core::plugin_manager::query::{QueryInfo, QueryResult, QueryResultData};
 use tuirealm::{
     event::{Key, KeyEvent, KeyModifiers},
     terminal::TerminalBridge,

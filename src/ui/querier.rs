@@ -1,9 +1,9 @@
 use std::sync::mpsc::Sender;
 
-use plugin_manager::{query::QueryInfo, PluginManager};
+use phosphorus_core::plugin_manager::{query::QueryInfo, PluginManager};
 
 use super::event::UserEvent;
-use plugin_manager::downloader::ProgressFollowerFn;
+use phosphorus_core::plugin_manager::downloader::ProgressFollowerFn;
 use youtube::YouTube;
 
 pub enum Message {

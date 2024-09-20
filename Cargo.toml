@@ -6,7 +6,6 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-plugin_manager = { path = "../plugin_manager" }
 youtube = { path = "../plugins/youtube" }
 phosphorus_core = { path = "../phosphorus_core" }
 tokio = { version = "1", features = ["full"] }

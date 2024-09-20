@@ -1,4 +1,4 @@
-use plugin_manager::query::QueryResult;
+use phosphorus_core::plugin_manager::query::QueryResult;
 use tui_realm_stdlib::Table;
 use tuirealm::{
     props::{Color, TableBuilder, TextModifiers, TextSpan},

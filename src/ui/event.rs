@@ -1,7 +1,7 @@
 use phosphorus_core::song::Song;
 use std::sync::mpsc::Receiver;
 
-use plugin_manager::query::{QueryResult, QueryResultData};
+use phosphorus_core::plugin_manager::query::{QueryResult, QueryResultData};
 use tuirealm::{listener::Poll, Event};
 
 #[derive(Clone, PartialOrd, Debug)]
