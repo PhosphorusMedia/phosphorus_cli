@@ -11,12 +11,11 @@ use tuirealm::{
 };
 
 use super::{
-    event::UserEvent,
     playlist_list::PlaylistList,
     queue::Queue,
     secondary_window::{HelpWindow, PlaylistWindow, ResultsWindow},
     welcome_window::WelcomWindow,
-    AppMsg,
+    AppMsg, UserEvent,
 };
 
 const PLAYLIST_LIST: usize = 0;
@@ -186,11 +185,6 @@ impl Component<AppMsg, UserEvent> for AppWindow {
                 }
                 return Some(AppMsg::ResetFocus);
             }
-            Event::User(UserEvent::DownloadFinished(song)) => {
-                self.playlist_manager
-                    .add_to(song, crate::playlist_manager::ALL_SONGS);
-                return Some(AppMsg::None);
-            }
             Event::Keyboard(KeyEvent { code: Key::Tab, .. }) => {
                 // Removes focus from current active component
                 child.attr(Attribute::Focus, AttrValue::Flag(false));
@@ -321,6 +315,14 @@ impl Component<AppMsg, UserEvent> for AppWindow {
                 code: Key::Char(' '),
                 modifiers: KeyModifiers::CONTROL,
             }) => return Some(AppMsg::PlayPause),
+            Event::User(UserEvent::DownloadFinished(song)) => {
+                self.playlist_manager
+                    .add_to(song, crate::playlist_manager::ALL_SONGS);
+                return Some(AppMsg::None);
+            }
+            Event::User(UserEvent::DownloadFailed(_song, _err)) => {
+                todo!();
+            }
             _ => (),
         };
 

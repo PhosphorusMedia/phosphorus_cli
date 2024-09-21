@@ -8,7 +8,7 @@ use tuirealm::{
     AttrValue, Attribute, Component, Event, MockComponent,
 };
 
-use super::{event::UserEvent, AppMsg};
+use super::{AppMsg, UserEvent};
 
 const LEFT_LABEL: usize = 0;
 const RIGHT_LABEL: usize = 1;
@@ -28,6 +28,7 @@ const QUERY_SENT_MSG_1: &'static str = "Fetching results.  ";
 const QUERY_SENT_MSG_2: &'static str = "Fetching results.. ";
 const QUERY_SENT_MSG_3: &'static str = "Fetching results...";
 const QUERY_SOLVED_MSG: &'static str = "Results fetched in";
+const QUERY_FAILED_MSG: &'static str = "Query failed:";
 
 #[derive(MockComponent)]
 pub struct StatusBar {
@@ -154,6 +155,18 @@ impl Component<AppMsg, UserEvent> for StatusBar {
                     );
                     self.timer = None;
                 }
+            }
+            UserEvent::QueryError(err) => {
+                let child: &mut Box<dyn MockComponent> = children.get_mut(RIGHT_LABEL).unwrap();
+                child.attr(
+                    Attribute::Text,
+                    AttrValue::String(format!(
+                        "{} {}",
+                        QUERY_FAILED_MSG,
+                        err
+                    )),
+                );
+                self.timer = None;
             }
             UserEvent::PlaySong(song) => {
                 let child: &mut Box<dyn MockComponent> = children.get_mut(RIGHT_LABEL).unwrap();

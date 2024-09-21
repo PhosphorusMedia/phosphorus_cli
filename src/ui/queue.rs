@@ -8,7 +8,7 @@ use tuirealm::{
     Component, Event, MockComponent,
 };
 
-use super::{event::UserEvent, AppMsg};
+use super::{AppMsg, UserEvent};
 
 #[derive(MockComponent)]
 pub struct Queue {

@@ -2,6 +2,7 @@ use phosphorus_core::{
     playlist_manager::PlaylistManager,
     queue::QueueManager,
     song::{Song, SongDetails},
+    TrackInfo,
 };
 use std::{
     sync::mpsc::{Receiver, Sender},
@@ -25,8 +26,9 @@ use crate::{
     },
 };
 
-use self::{event::UserEvent, querier::Querier};
+use self::querier::Querier;
 
+mod app_msg;
 mod app_window;
 mod event;
 mod player_bar;
@@ -38,6 +40,9 @@ mod status_bar;
 mod top_bar;
 mod welcome_window;
 
+pub use app_msg::AppMsg;
+pub use event::UserEvent;
+
 #[derive(Debug, Eq, PartialEq, Clone, Hash)]
 pub enum Id {
     Label,
@@ -45,39 +50,6 @@ pub enum Id {
     TopBar,
     StatusBar,
     PlayerBar,
-}
-
-#[derive(Debug, PartialEq)]
-pub enum AppMsg {
-    /// Closes the application
-    Quit,
-    /// The current active componen loses its focus
-    LoseFocus,
-    /// Can be used when a secondary window is closed
-    ResetFocus,
-    /// The focus is passed to the next component
-    GoNextItem,
-    /// Is like calling GoNext n time, so GoNextItem
-    /// is equivalent to GoForward(1)
-    GoForward(u16),
-    /// The help window has been requested
-    ShowHelp,
-    /// Show songs in a playlist
-    ShowPlaylist,
-    /// Boh
-    QuerySent(String),
-    /// Plays&downloads a song retrieving it from query results
-    PlayFromResult(QueryResultData),
-    /// Plays a song from a playlist
-    PlayFromPlaylist(usize),
-    /// Plays the song
-    Play(Song),
-    PlayPause,
-    /// Tried to use a missing song. Missing means that the song isn't
-    /// in a playlist, or the queue or in the result window.
-    MissingSong,
-    DownloadSong(QueryResultData),
-    None,
 }
 
 pub enum FocusableItem {
@@ -137,6 +109,7 @@ pub struct Model {
     /// Some(true): a song is current being played
     /// Some(false): a song is being played, but has been paused
     playing: Option<bool>,
+    download_progress_forwarder: Sender<TrackInfo>,
 }
 
 impl Model {
@@ -145,21 +118,28 @@ impl Model {
         playlist_manager: PlaylistManager,
         queue_manager: QueueManager,
     ) -> Result<Self, ()> {
-        let (tx, rx) = std::sync::mpsc::channel();
-        let querier = Querier::new(tx.clone())?;
+        let (user_event_tx, user_event_rx) = std::sync::mpsc::channel();
+        let (download_track_tx, download_track_rx) = std::sync::mpsc::channel();
+        let querier = Querier::new(user_event_tx.clone())?;
 
         Ok(Self {
-            app: Self::init_app(playlist_manager, queue_manager, rx),
+            app: Self::init_app(
+                playlist_manager,
+                queue_manager,
+                user_event_rx,
+                download_track_rx,
+            ),
             quit: false,
             redraw: true,
             terminal: TerminalBridge::new().expect("Cannot initialize terminal"),
             active: FocusableItem::SearchBar,
             is_secondary_window_active: false,
             paths,
-            user_event: tx,
+            user_event: user_event_tx,
             querier,
             player: Player::try_new().expect("Cannot initialize the player process"),
             playing: None,
+            download_progress_forwarder: download_track_tx,
         })
     }
 
@@ -192,23 +172,30 @@ impl Model {
     pub fn init_app(
         playlist_manager: PlaylistManager,
         queue_manager: QueueManager,
-        rx: Receiver<UserEvent>,
+        user_event_rx: Receiver<UserEvent>,
+        dowload_track_rx: Receiver<TrackInfo>,
     ) -> Application<Id, AppMsg, UserEvent> {
         // Setup application
-        // NOTE: NoUserEvent is a shorthand to tell tui-realm we're not going to use any custom user event
         // NOTE: the event listener is configured to use the default crossterm input listener and to raise a Tick event each second
         // which we will use to update the clock
         let mut app: Application<Id, AppMsg, UserEvent> = Application::init(
             EventListenerCfg::default()
                 .default_input_listener(Duration::from_millis(20))
-                .port(UserEventPort::new(rx).boxed(), Duration::from_millis(100))
+                .port(
+                    UserEventPort::new(user_event_rx).boxed(),
+                    Duration::from_millis(100),
+                )
                 .poll_timeout(Duration::from_millis(10))
-                .tick_interval(Duration::from_millis(50)),
+                .tick_interval(Duration::from_millis(100)),
         );
 
         // Mounts the components
         assert!(app
-            .mount(Id::TopBar, TopBar::default().boxed(), Vec::default())
+            .mount(
+                Id::TopBar,
+                TopBar::new(dowload_track_rx).boxed(),
+                Vec::default()
+            )
             .is_ok());
         assert!(app
             .mount(
@@ -284,10 +271,13 @@ impl Model {
         assert!(app
             .subscribe(
                 &Id::TopBar,
-                Sub::new(
-                    SubEventClause::User(UserEvent::DownloadRegistered(String::default())),
-                    tuirealm::SubClause::Always
-                )
+                Sub::new(SubEventClause::User(UserEvent::DownloadRegistered(Song::default())), tuirealm::SubClause::Always)
+            )
+            .is_ok());
+        assert!(app
+            .subscribe(
+                &Id::TopBar,
+                Sub::new(SubEventClause::Tick, tuirealm::SubClause::Always)
             )
             .is_ok());
 
@@ -398,37 +388,48 @@ impl Update<AppMsg> for Model {
                     self.playing = Some(true);
                 }
                 AppMsg::DownloadSong(query_data) => {
-                    // Let download tracker know about the new download
-                    let _ = self.user_event.send(UserEvent::DownloadRegistered(
-                        query_data.track_name().to_string(),
-                    ));
                     let file_name = phosphorus_core::file_name_from_basics(
                         query_data.track_name(),
                         query_data.artist_name(),
                     );
                     let song = self.create_song_file(&query_data, &file_name);
+                    // Let download tracker know about the new download
+                    let _ = self.user_event.send(UserEvent::DownloadRegistered(
+                        song.clone()
+                    ));
 
                     let raw_path = self.paths.download().join(&file_name);
                     self.querier.download(
                         query_data.track_url().to_string(),
                         raw_path.to_str().unwrap().to_string(),
-                        |rx| {
+                        |rx, tx, song| {
+                            let _ = tx.send(TrackInfo::Started(song.clone()));
                             loop {
                                 match rx.recv() {
                                     Ok(value) => {
+                                        let _ = tx.send(TrackInfo::Progress(song.clone(), value));
                                         if value == 100.0 {
+                                            let _ = tx.send(TrackInfo::Finished(song.clone()));
                                             break;
                                         }
                                     }
-                                    Err(_) => {
+                                    Err(msg) => {
                                         // The sender has terminated sending data
+                                        let _ = tx.send(TrackInfo::Failed(song.clone(), msg.to_string()));
                                         break;
                                     }
                                 }
                             }
                         },
+                        self.download_progress_forwarder.clone(),
+                        song,
                     );
+                }
+                AppMsg::DownloadFinished(song) => {
                     let _ = self.user_event.send(UserEvent::DownloadFinished(song));
+                }
+                AppMsg::DownloadFailed(song, err) => {
+                    let _ = self.user_event.send(UserEvent::DownloadFailed(song, err));
                 }
                 _ => (),
             }

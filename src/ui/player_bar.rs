@@ -8,7 +8,7 @@ use tuirealm::{
     AttrValue, Attribute, Component, Event, MockComponent,
 };
 
-use super::{event::UserEvent, AppMsg};
+use super::{AppMsg, UserEvent};
 
 const LEFT_LABEL: usize = 1;
 const CURRENT_TIME: usize = 2;

@@ -10,23 +10,24 @@ use tuirealm::{
 
 const DOWNLOAD_FOLLOWER: usize = 1;
 
-pub enum TrackInfo {
+pub enum InternalTrackInfo {
     New(String),
     Started,
     Progress(f32),
     Finished,
+    Failed(String),
 }
 
 pub(super) struct DownloadTracker {
     component: Container,
     downloads: Vec<String>,
-    track_info_rx: Receiver<TrackInfo>,
+    track_info_rx: Receiver<InternalTrackInfo>,
     download_count_tx: Sender<usize>,
     current: Option<String>,
 }
 
 impl DownloadTracker {
-    pub fn new(rx: Receiver<TrackInfo>) -> Self {
+    pub fn new(rx: Receiver<InternalTrackInfo>) -> Self {
         let (tx, internal_rx) = std::sync::mpsc::channel();
 
         let children: Vec<Box<dyn MockComponent>> = vec![
@@ -49,8 +50,8 @@ impl DownloadTracker {
                         .direction(Direction::Horizontal)
                         .constraints(
                             [
-                                Constraint::Min(1),
-                                Constraint::Max(DOWNLOAD_STR_LENGTH as u16),
+                                Constraint::Max(1),
+                                Constraint::Min(DOWNLOAD_STR_LENGTH as u16),
                                 Constraint::Min(4),
                             ]
                             .as_ref(),
@@ -90,13 +91,14 @@ impl MockComponent for DownloadTracker {
         match cmd {
             tuirealm::command::Cmd::Change => {
                 match self.track_info_rx.recv().unwrap() {
-                    TrackInfo::New(song_name) => {
+                    InternalTrackInfo::New(song_name) => {
                         self.downloads.push(song_name);
                         let _ = self.download_count_tx.send(self.downloads.len());
                         self.component.perform(Cmd::Change);
                     }
-                    TrackInfo::Started => {
-                        let song_name = self.downloads.pop().unwrap();
+                    InternalTrackInfo::Started => {
+                        let song_name =self.downloads.pop().unwrap();
+                        let _ = self.download_count_tx.send(self.downloads.len());
                         self.component.perform(Cmd::Change);
                         let follower = self.component.children.get_mut(DOWNLOAD_FOLLOWER).unwrap();
                         follower.attr(
@@ -105,7 +107,7 @@ impl MockComponent for DownloadTracker {
                         );
                         self.current = Some(song_name);
                     }
-                    TrackInfo::Progress(perc) => {
+                    InternalTrackInfo::Progress(perc) => {
                         let song_name = self.current.as_ref().unwrap();
                         let follower = self.component.children.get_mut(DOWNLOAD_FOLLOWER).unwrap();
                         follower.attr(
@@ -113,12 +115,20 @@ impl MockComponent for DownloadTracker {
                             tuirealm::AttrValue::String(format_downloading(&song_name, perc)),
                         );
                     }
-                    TrackInfo::Finished => {
+                    InternalTrackInfo::Finished => {
                         self.current = None;
                         let follower = self.component.children.get_mut(DOWNLOAD_FOLLOWER).unwrap();
                         follower.attr(
                             tuirealm::Attribute::Text,
                             tuirealm::AttrValue::String(String::new()),
+                        );
+                    }
+                    InternalTrackInfo::Failed(err) => {
+                        self.current = None;
+                        let follower = self.component.children.get_mut(DOWNLOAD_FOLLOWER).unwrap();
+                        follower.attr(
+                            tuirealm::Attribute::Text,
+                            tuirealm::AttrValue::String(format!("\n{} ", err)),
                         );
                     }
                 };
@@ -190,7 +200,9 @@ impl MockComponent for DownloadCounter {
                 let count = match self.rx.recv() {
                     Ok(count) => count,
                     Err(err) => {
-                        eprintln!("ERROR: {err}"); std::process::exit(1);},
+                        eprintln!("ERROR: {err}");
+                        std::process::exit(1);
+                    }
                 };
                 self.component.attr(
                     tuirealm::Attribute::Text,
@@ -206,9 +218,9 @@ impl MockComponent for DownloadCounter {
 const MAX_NAME_LENGTH: usize = 8;
 const DOWNLOAD_STR_LENGTH: usize = MAX_NAME_LENGTH + 12;
 fn format_downloading(name: &str, percentage: f32) -> String {
-    if name.len() > MAX_NAME_LENGTH + 3 {
+    if name.len() > MAX_NAME_LENGTH + 2 {
         format!(
-            "\n{:<MAX_NAME_LENGTH$}...: {:02.2}% ",
+            "\n{:<MAX_NAME_LENGTH$}..: {:02.2}% ",
             &name[0..MAX_NAME_LENGTH],
             percentage
         )

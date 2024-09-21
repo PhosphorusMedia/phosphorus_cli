@@ -1,14 +1,24 @@
 use std::sync::mpsc::Sender;
 
-use phosphorus_core::plugin_manager::{query::QueryInfo, PluginManager};
+use phosphorus_core::{
+    plugin_manager::{query::QueryInfo, PluginManager},
+    song::Song,
+    TrackInfo,
+};
 
-use super::event::UserEvent;
+use super::UserEvent;
 use phosphorus_core::plugin_manager::downloader::ProgressFollowerFn;
 use youtube::YouTube;
 
 pub enum Message {
     Search(QueryInfo),
-    Download(String, String, ProgressFollowerFn),
+    Download(
+        String, // Song url
+        String, // Song dest path
+        ProgressFollowerFn,
+        Sender<TrackInfo>,
+        Song, // Song file for the downloaded song
+    ),
     Quit,
 }
 
@@ -85,15 +95,20 @@ impl Querier {
                             Err(error) => user_event.send(UserEvent::QueryError(error.to_string())),
                         };
                     }
-                    Message::Download(url, file_name, progress_follower) => {
-                        let result =
-                            runtime.block_on(manager.download(&url, &file_name, progress_follower));
-                        let _ = match result {
-                            Ok(_) => Ok(()),
-                            Err(error) => {
-                                user_event.send(UserEvent::DownloadError(error.to_string()))
-                            }
-                        };
+                    Message::Download(
+                        url,
+                        file_name,
+                        progress_follower,
+                        progress_forwarder,
+                        song,
+                    ) => {
+                        let _ = runtime.block_on(manager.download(
+                            &url,
+                            &file_name,
+                            progress_follower,
+                            progress_forwarder,
+                            song,
+                        ));
                     }
                     Message::Quit => break,
                 };
@@ -115,10 +130,21 @@ impl Querier {
         let _ = self.tx.send(Message::Search(query));
     }
 
-    pub fn download(&self, url: String, file_name: String, progress_follower: ProgressFollowerFn) {
-        let _ = self
-            .tx
-            .send(Message::Download(url, file_name, progress_follower));
+    pub fn download(
+        &self,
+        url: String,
+        file_name: String,
+        progress_follower: ProgressFollowerFn,
+        progress_forwarder: Sender<TrackInfo>,
+        song: Song,
+    ) {
+        let _ = self.tx.send(Message::Download(
+            url,
+            file_name,
+            progress_follower,
+            progress_forwarder,
+            song,
+        ));
     }
 }
 

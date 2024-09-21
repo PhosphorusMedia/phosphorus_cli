@@ -8,7 +8,7 @@ use tuirealm::{
     Component, Event, MockComponent,
 };
 
-use crate::ui::{event::UserEvent, AppMsg};
+use crate::ui::{AppMsg, UserEvent};
 
 const UNKNOWN_ARTIST: &'static str = "Unkwnown";
 const UNKNOWN_DURATION: &'static str = " - ";

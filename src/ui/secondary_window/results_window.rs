@@ -5,7 +5,7 @@ use tuirealm::{
     Component, MockComponent,
 };
 
-use crate::ui::{event::UserEvent, AppMsg};
+use crate::ui::{AppMsg, UserEvent};
 
 #[derive(MockComponent)]
 pub struct ResultsWindow {
