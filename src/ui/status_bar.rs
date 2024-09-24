@@ -160,11 +160,7 @@ impl Component<AppMsg, UserEvent> for StatusBar {
                 let child: &mut Box<dyn MockComponent> = children.get_mut(RIGHT_LABEL).unwrap();
                 child.attr(
                     Attribute::Text,
-                    AttrValue::String(format!(
-                        "{} {}",
-                        QUERY_FAILED_MSG,
-                        err
-                    )),
+                    AttrValue::String(format!("{} {}", QUERY_FAILED_MSG, err)),
                 );
                 self.timer = None;
             }

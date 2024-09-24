@@ -5,8 +5,7 @@ use phosphorus_core::{
     TrackInfo,
 };
 use std::{
-    sync::mpsc::{Receiver, Sender},
-    time::Duration,
+    sync::mpsc::{Receiver, Sender}, time::Duration
 };
 
 use phosphorus_core::plugin_manager::query::{QueryInfo, QueryResult, QueryResultData};
@@ -121,6 +120,7 @@ impl Model {
         let (user_event_tx, user_event_rx) = std::sync::mpsc::channel();
         let (download_track_tx, download_track_rx) = std::sync::mpsc::channel();
         let querier = Querier::new(user_event_tx.clone())?;
+        let player = Player::try_new(user_event_tx.clone()).expect("Cannot initialize the player process");
 
         Ok(Self {
             app: Self::init_app(
@@ -137,7 +137,7 @@ impl Model {
             paths,
             user_event: user_event_tx,
             querier,
-            player: Player::try_new().expect("Cannot initialize the player process"),
+            player,
             playing: None,
             download_progress_forwarder: download_track_tx,
         })
@@ -271,7 +271,10 @@ impl Model {
         assert!(app
             .subscribe(
                 &Id::TopBar,
-                Sub::new(SubEventClause::User(UserEvent::DownloadRegistered(Song::default())), tuirealm::SubClause::Always)
+                Sub::new(
+                    SubEventClause::User(UserEvent::DownloadRegistered(Song::default())),
+                    tuirealm::SubClause::Always
+                )
             )
             .is_ok());
         assert!(app
@@ -363,18 +366,12 @@ impl Update<AppMsg> for Model {
                     let _ = self.user_event.send(UserEvent::HelpOpened);
                     self.active = FocusableItem::SecondaryWindow;
                     self.is_secondary_window_active = true;
-
-                    // Again, I don't know why this has to repeted
-                    assert!(self.app.active(&self.active.to_id()).is_ok());
                     assert!(self.app.active(&self.active.to_id()).is_ok());
                 }
                 AppMsg::ShowPlaylist => {
                     let _ = self.user_event.send(UserEvent::PlaylistViewOpened);
                     self.active = FocusableItem::SecondaryWindow;
                     self.is_secondary_window_active = true;
-
-                    // Again, I don't know why this has to repeted
-                    assert!(self.app.active(&self.active.to_id()).is_ok());
                     assert!(self.app.active(&self.active.to_id()).is_ok());
                 }
                 AppMsg::QuerySent(query) => {
@@ -382,10 +379,28 @@ impl Update<AppMsg> for Model {
                     self.querier.query(query);
                     let _ = self.user_event.send(UserEvent::QuerySent);
                 }
-                AppMsg::Play(song) => {
-                    self.player.initiate(&song).expect("Error in reproduction!");
+                AppMsg::PlayFromPlaylist(song) => {
+                    self.player.initiate(song.clone());
                     let _ = self.user_event.send(UserEvent::PlaySong(song));
                     self.playing = Some(true);
+                },
+                AppMsg::Play(song) => {
+                    self.player.append(song.clone());
+                    let _ = self.user_event.send(UserEvent::PlaySong(song));
+                    self.playing = Some(true);
+                }
+                AppMsg::StopReproducion => {
+                    self.player.clear();
+                    self.playing = None;
+                }
+                AppMsg::PlayPause => {
+                    if let Some(status) = self.playing {
+                        if status {
+                            self.player.pause();
+                        } else {
+                            self.player.play();
+                        }
+                    }
                 }
                 AppMsg::DownloadSong(query_data) => {
                     let file_name = phosphorus_core::file_name_from_basics(
@@ -394,9 +409,9 @@ impl Update<AppMsg> for Model {
                     );
                     let song = self.create_song_file(&query_data, &file_name);
                     // Let download tracker know about the new download
-                    let _ = self.user_event.send(UserEvent::DownloadRegistered(
-                        song.clone()
-                    ));
+                    let _ = self
+                        .user_event
+                        .send(UserEvent::DownloadRegistered(song.clone()));
 
                     let raw_path = self.paths.download().join(&file_name);
                     self.querier.download(
@@ -415,7 +430,8 @@ impl Update<AppMsg> for Model {
                                     }
                                     Err(msg) => {
                                         // The sender has terminated sending data
-                                        let _ = tx.send(TrackInfo::Failed(song.clone(), msg.to_string()));
+                                        let _ = tx
+                                            .send(TrackInfo::Failed(song.clone(), msg.to_string()));
                                         break;
                                     }
                                 }

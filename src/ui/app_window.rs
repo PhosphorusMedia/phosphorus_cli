@@ -254,8 +254,8 @@ impl Component<AppMsg, UserEvent> for AppWindow {
                             }
                             self.queue_manager.set_on_playlist(playlist, index);
                             rebuild_queue(&self.queue_manager, children);
-                            return Some(AppMsg::Play(
-                                playlist.songs().get(index).unwrap().clone(),
+                            return Some(AppMsg::PlayFromPlaylist(
+                                playlist.songs().get(index).unwrap().clone()
                             ));
                         }
                     }
@@ -322,6 +322,19 @@ impl Component<AppMsg, UserEvent> for AppWindow {
             }
             Event::User(UserEvent::DownloadFailed(_song, _err)) => {
                 todo!();
+            }
+            Event::User(UserEvent::PlayNext) => {
+                let song = self.queue_manager.next();
+                let msg = match song {
+                    Some(song) => {
+                        AppMsg::Play(song.clone())
+                    },
+                    None => {
+                        AppMsg::StopReproducion
+                    },
+                };
+                rebuild_queue(&self.queue_manager, children);
+                return Some(msg);
             }
             _ => (),
         };

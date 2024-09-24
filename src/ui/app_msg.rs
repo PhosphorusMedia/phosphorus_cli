@@ -19,11 +19,13 @@ pub enum AppMsg {
     ShowPlaylist,
     /// Boh
     QuerySent(String),
-    /// Plays a song from a playlist
-    PlayFromPlaylist(usize),
+    /// Plays a song from a playlist. This causes a reset of the playing queue
+    /// and sink queue.
+    PlayFromPlaylist(Song),
     /// Plays the song
     Play(Song),
     PlayPause,
+    StopReproducion,
     /// Tried to use a missing song. Missing means that the song isn't
     /// in a playlist, or the queue or in the result window.
     MissingSong,

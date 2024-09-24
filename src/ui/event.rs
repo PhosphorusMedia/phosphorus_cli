@@ -20,6 +20,7 @@ pub enum UserEvent {
     QueryError(String),
     /// Started playing a song
     PlaySong(Song),
+    PlayNext,
     /// Registers a new download to serve
     DownloadRegistered(Song),
     /// A download has succesfully finished

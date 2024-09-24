@@ -97,7 +97,7 @@ impl MockComponent for DownloadTracker {
                         self.component.perform(Cmd::Change);
                     }
                     InternalTrackInfo::Started => {
-                        let song_name =self.downloads.pop().unwrap();
+                        let song_name = self.downloads.pop().unwrap();
                         let _ = self.download_count_tx.send(self.downloads.len());
                         self.component.perform(Cmd::Change);
                         let follower = self.component.children.get_mut(DOWNLOAD_FOLLOWER).unwrap();

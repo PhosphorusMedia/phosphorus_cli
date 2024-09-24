@@ -146,7 +146,9 @@ impl Component<AppMsg, UserEvent> for TopBar {
                             AppMsg::DownloadFinished(song)
                         }
                         TrackInfo::Failed(song, err) => {
-                            let _ = self.internal_tx.send(InternalTrackInfo::Failed(err.clone()));
+                            let _ = self
+                                .internal_tx
+                                .send(InternalTrackInfo::Failed(err.clone()));
                             AppMsg::DownloadFailed(song, err)
                         }
                     };

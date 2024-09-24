@@ -41,7 +41,7 @@ fn long_formatter(duration: &Duration) -> String {
 pub struct PlayerBar {
     component: Container,
     timing: Option<Instant>,
-    formatter: Formatter,
+    formatter: Formatter
 }
 
 impl PlayerBar {
@@ -131,10 +131,10 @@ impl Default for PlayerBar {
                                 Constraint::Length(1),      // Space between border and content
                                 Constraint::Percentage(20), // Song name and artis
                                 Constraint::Percentage(5),  // Current timing
-                                Constraint::Length(1), // Space between current timing and progress
+                                Constraint::Length(1),      // Space between current timing and progress
                                 Constraint::Percentage(50), // Progress indicator
-                                Constraint::Length(1), // Space between progress and duration
-                                Constraint::Percentage(5), // Duration
+                                Constraint::Length(1),      // Space between progress and duration
+                                Constraint::Percentage(5),  // Duration
                                 Constraint::Percentage(20), // Empty space on the right
                             ]
                             .as_ref(),
@@ -142,7 +142,7 @@ impl Default for PlayerBar {
                         .horizontal_margin(1),
                 ),
             timing: None,
-            formatter: short_formatter,
+            formatter: short_formatter
         }
     }
 }
@@ -152,9 +152,6 @@ impl Component<AppMsg, UserEvent> for PlayerBar {
         let children: &mut Vec<Box<dyn MockComponent>> = self.component.children.as_mut();
 
         match ev {
-            Event::User(UserEvent::PlaySong(song)) => {
-                self.set_song(song.details());
-            }
             Event::Tick => {
                 if let Some(timer) = self.timing {
                     let duration = timer.elapsed();
@@ -165,6 +162,9 @@ impl Component<AppMsg, UserEvent> for PlayerBar {
                         );
                     }
                 }
+            },
+            Event::User(UserEvent::PlaySong(song)) => {
+                self.set_song(song.details());
             }
             _ => {}
         }
